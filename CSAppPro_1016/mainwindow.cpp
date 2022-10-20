@@ -84,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
             chatServerForm, SLOT(removeChatClient(int)));
 
     clientForm->loadData();
+
 }
 
 MainWindow::~MainWindow()
