@@ -1,4 +1,4 @@
-#include "chatclientform.h".h"
+#include "chatclientform.h"
 
 #include <QTextEdit>
 #include <QLineEdit>
@@ -107,8 +107,10 @@ ChatClientForm::ChatClientForm(QWidget *parent) : QWidget(parent), isSent(false)
     connect(connectButton, &QPushButton::clicked,
             [=]{
         if(connectButton->text() == tr("Log In")) {
+
             clientSocket->connectToHost(serverAddress->text( ),
                                         serverPort->text( ).toInt( ));
+
             //데이터를 보내기 전에 서버가 접속되기까지 기다리는 것
             clientSocket->waitForConnected();
             sendProtocol(Chat_Login, name->text().toStdString().data());
@@ -155,24 +157,37 @@ void ChatClientForm::receiveData( )
     if (clientSocket->bytesAvailable( ) > BLOCK_SIZE) return;
     QByteArray bytearray = clientSocket->read(BLOCK_SIZE);
 
+
     Chat_Status type;       // 채팅의 목적
     char data[1020];        // 전송되는 메시지/데이터
     memset(data, 0, 1020);  //데이터를 0으로 초기화, 데이터 사이즈는 1020
 
     QDataStream in(&bytearray, QIODevice::ReadOnly);
     in.device()->seek(0);
-    in >> type;
+    in >> type ;
+
     in.readRawData(data, 1020);
+
 
     switch(type) {
     case Chat_Talk:
+        if(flag == 0){
         message->append(QString(data));
         inputLine->setEnabled(true);
         sentButton->setEnabled(true);
         fileButton->setEnabled(true);
+        }
+
+        //kick_out으로 대기방에 있을 경우
+        else{
+            inputLine->setEnabled(false);
+            sentButton->setEnabled(false);
+            fileButton->setEnabled(false);
+        }
         break;
 
     case Chat_KickOut:
+        flag = 1;
         QMessageBox::critical(this, tr("Chatting Client"), \
                               tr("Kick out from Server"));
         inputLine->setDisabled(true);
@@ -180,8 +195,11 @@ void ChatClientForm::receiveData( )
         fileButton->setDisabled(true);
         name->setReadOnly(false);
         connectButton->setText(tr("Chat in"));
+        connectButton->setEnabled(false);
         break;
+
     case Chat_Invite:
+        flag = 0;
         QMessageBox::critical(this, tr("Chatting Client"), \
                               tr("Invited from Server"));
         inputLine->setEnabled(true);
@@ -189,7 +207,17 @@ void ChatClientForm::receiveData( )
         fileButton->setEnabled(true);
         name->setReadOnly(true);
         connectButton->setText(tr("Chat Out"));
+        connectButton->setEnabled(true);
         break;
+
+//    case Chat_LogInCheck:
+//        qDebug() << data;
+//        name->clear();
+//        inputLine->setEnabled(true);
+//        sentButton->setEnabled(true);
+//        fileButton->setEnabled(true);
+//        connectButton->setText(tr("Log In"));
+//        break;
     };
 }
 

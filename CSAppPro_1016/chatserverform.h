@@ -11,6 +11,7 @@ class QTcpServer;
 class QTcpSocket;
 class QFile;
 class QProgressDialog;
+class LogThread;
 
 namespace Ui {
 class ChatServerForm;
@@ -24,6 +25,7 @@ typedef enum {
     Chat_LogOut,            // 로그 아웃(서버 단절) --> 초대 불가능
     Chat_Invite,            // 초대
     Chat_KickOut,           // 강퇴
+    Chat_LogInCheck         // 존재하는 고객인지 확인
 } Chat_Status;
 
 class ChatServerForm : public QWidget
@@ -43,9 +45,9 @@ private:
     QTcpServer *fileServer;
     QList<QTcpSocket*> clientList;
     QList<int> clientIDList;
-    QHash<quint16, QString> clientNameHash;
+    QHash<quint16, QString> clientNameHash;                 // port, name
     QHash<QString, QTcpSocket*> clientSocketHash;
-    QHash<QString, int> clientIDHash;
+    QHash<QString, int> clientIDHash;                       // name, id
     QMenu* menu;
     QFile* file;
     QProgressDialog* progressDialog;
@@ -53,6 +55,7 @@ private:
     qint64 byteReceived;
     QByteArray inBlock;
     QList<QTreeWidgetItem*> ChatList;
+    LogThread* logThread;
 
 
 private slots:
@@ -63,15 +66,13 @@ private slots:
     void receiveData( );
     void removeClient( );
 
-        void addChatClient(int id, QString name);
-        void removeChatClient(int index);
-        void modifyChatClient(int id, QString name, int index);
+    void addChatClient(int id, QString name);
+    void removeChatClient(int index);
+    void modifyChatClient(int id, QString name, int index);
 
-    void addClient(int, QString);
     void inviteClient();
     void kickOut();
     void on_clientTreeWidget_customContextMenuRequested(const QPoint &pos);
-    void on_savePushButton_pressed();
 };
 
 #endif // CHATSERVERFORM_H

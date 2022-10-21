@@ -1,5 +1,6 @@
 #include "chatserverform.h"
 #include "ui_chatserverform.h"
+#include "logthread.h"
 
 #include <QPushButton>
 #include <QBoxLayout>
@@ -63,6 +64,11 @@ ChatServerForm::ChatServerForm(QWidget *parent) :
     progressDialog->setAutoClose(true);
     progressDialog->reset();
 
+    logThread = new LogThread(this);
+    logThread->start();
+
+    connect(ui->savePushButton, SIGNAL(clicked()), logThread, SLOT(saveData()));
+
 
 
     qDebug() << tr("The server is running on port %1.").arg(chatServer->serverPort( ));
@@ -73,6 +79,7 @@ ChatServerForm::~ChatServerForm()
 {
     delete ui;
 
+    logThread->terminate();
     chatServer->close( );
     fileServer->close( );
 }
@@ -103,10 +110,15 @@ void ChatServerForm::receiveData( )
     quint16 port = clientConnection->peerPort();
     QString name = QString::fromStdString(data);
 
+
+
+
+
     qDebug() << ip << " : " << type;
 
     switch(type) {
     case Chat_Login:
+
         foreach(auto item, ui->clientTreeWidget->findItems(name, Qt::MatchFixedString, 1)) {
             if(item->text(0) != "-") {
                 item->setText(0, "-");
@@ -114,7 +126,20 @@ void ChatServerForm::receiveData( )
                 clientSocketHash[name] = clientConnection;
             }
         }
+
+        //qDebug() << "?//" << ui->clientTreeWidget->findItems(name, Qt::MatchFixedString, 1).count();
+
+
+//        if(ui->clientTreeWidget->findItems(name, Qt::MatchFixedString, 1).count() == 0){
+
+//            QByteArray sendArray;
+//            QDataStream out(&sendArray, QIODevice::WriteOnly);
+//            out << Chat_LogInCheck;
+//            out.writeRawData("", 1020);
+//            //qDebug() << "?//" << ui->clientTreeWidget->findItems(name, Qt::MatchFixedString, 1).count();
+//        }
         break;
+
     case Chat_In:
         foreach(auto item, ui->clientTreeWidget->findItems(name, Qt::MatchFixedString, 1)) {
             if(item->text(0) != "O") {
@@ -125,6 +150,7 @@ void ChatServerForm::receiveData( )
         break;
     case Chat_Talk: {
         foreach(QTcpSocket *sock, clientList) {
+            //sock != clientConnection이 채팅방에 있는 사람을 검색
             if(clientNameHash.contains(sock->peerPort()) && sock != clientConnection) {
                 QByteArray sendArray;
                 sendArray.clear();
@@ -142,8 +168,8 @@ void ChatServerForm::receiveData( )
         QTreeWidgetItem* item = new QTreeWidgetItem(ui->messageTreeWidget);
         item->setText(0, ip);
         item->setText(1, QString::number(port));
-        item->setText(2, QString::number(clientIDHash[clientNameHash[port]]));
-        item->setText(3, clientNameHash[port]);
+        item->setText(2, QString::number(clientIDHash[clientNameHash[port]])); // id
+        item->setText(3, clientNameHash[port]);                                  // name
         item->setText(4, QString(data));
         item->setText(5, QDateTime::currentDateTime().toString());
         item->setToolTip(4, QString(data));
@@ -152,6 +178,7 @@ void ChatServerForm::receiveData( )
         for(int i = 0; i < ui->messageTreeWidget->columnCount(); i++)
             ui->messageTreeWidget->resizeColumnToContents(i);
 
+        logThread->appendData(item);
     }
         break;
     case Chat_Out:
@@ -170,6 +197,7 @@ void ChatServerForm::receiveData( )
                 clientSocketHash.remove(name);
             }
         }
+
         break;
     }
 }
@@ -188,27 +216,22 @@ void ChatServerForm::removeClient()
     }
 }
 
-void ChatServerForm::addClient(int id, QString name)
-{
-    clientIDList << id;
-    QTreeWidgetItem* item = new QTreeWidgetItem(ui->clientTreeWidget);
-    item->setText(0, "X");
-    item->setText(1, name);
-    ui->clientTreeWidget->addTopLevelItem(item);
-    clientIDHash[name] = id;
-    ui->clientTreeWidget->resizeColumnToContents(0);
-}
-
 void ChatServerForm::on_clientTreeWidget_customContextMenuRequested(const QPoint &pos)
 {
-    foreach(QAction *action, menu->actions()) {
-        if(action->objectName() == "Invite")
-            action->setEnabled(ui->clientTreeWidget->currentItem()->text(0) != "O");
-        else
-            action->setEnabled(ui->clientTreeWidget->currentItem()->text(0) == "O");
+    if(ui->clientTreeWidget->currentItem()){
+        foreach(QAction *action, menu->actions()) {
+            if(action->objectName() == "Invite"){
+                action->setEnabled(ui->clientTreeWidget->currentItem()->text(0) != "O");
+            }
+            else
+                action->setEnabled(ui->clientTreeWidget->currentItem()->text(0) == "O");
+        }
+        QPoint globalPos = ui->clientTreeWidget->mapToGlobal(pos);
+        menu->exec(globalPos);
     }
-    QPoint globalPos = ui->clientTreeWidget->mapToGlobal(pos);
-    menu->exec(globalPos);
+    else {
+        return;
+    }
 }
 
 void ChatServerForm::kickOut()
@@ -222,7 +245,6 @@ void ChatServerForm::kickOut()
     out.writeRawData("", 1020);
     sock->write(sendArray);
     ui->clientTreeWidget->currentItem()->setText(0, "-");
-
 }
 
 void ChatServerForm::inviteClient()
@@ -233,9 +255,15 @@ void ChatServerForm::inviteClient()
         QByteArray sendArray;
         QDataStream out(&sendArray, QIODevice::WriteOnly);
         out << Chat_Invite;
+        qDebug() << "out" << name;
         out.writeRawData("", 1020);
 
         QTcpSocket* sock = clientSocketHash[name];
+
+        if (sock == nullptr)
+        {
+            return;
+        }
 
         sock->write(sendArray);
         foreach(auto item, ui->clientTreeWidget->findItems(name, Qt::MatchFixedString, 1)) {
@@ -244,6 +272,8 @@ void ChatServerForm::inviteClient()
                 //                clientList.append(sock);        // QList<QTcpSocket*> clientList;
             }
         }
+        quint64 port = sock->peerPort();
+        clientNameHash[port] = name;
     }
 }
 
@@ -270,7 +300,6 @@ void ChatServerForm::readClient()
         QString ip = receivedSocket->peerAddress().toString();
         quint16 port = receivedSocket->peerPort();
         qDebug() << receivedSocket->peerName();
-        //QString name = receivedSocket->
 
         QDataStream in(receivedSocket);
         in >> totalSize >> byteReceived >> filename >> name;
@@ -289,7 +318,7 @@ void ChatServerForm::readClient()
             ui->messageTreeWidget->resizeColumnToContents(i);
 
         ui->messageTreeWidget->addTopLevelItem(item);
-
+        logThread->appendData(item);
 
         QFileInfo info(filename);
         QString currentFileName = info.fileName();
@@ -584,6 +613,7 @@ void ChatServerForm::addChatClient(int id, QString name)
     item->setText(1, name);
     ui->clientTreeWidget->addTopLevelItem(item);
     clientIDHash[name] = id;
+
     ui->clientTreeWidget->resizeColumnToContents(0);
 }
 
@@ -597,32 +627,37 @@ void ChatServerForm::modifyChatClient(int id, QString name, int index)
     ui->clientTreeWidget->topLevelItem(index)->setText(1, name);
 }
 
-void ChatServerForm::on_savePushButton_pressed()
-{
-    if(ChatList.count() > 0) {
-        qDebug("save File");
-        QString filename = QFileDialog::getSaveFileName(this, "Select file to save as", ".",
-                                                        "Text File (*.txt *.html *.c *.cpp *.h)");
-        QFile file(filename);
-        file.open(QIODevice::WriteOnly | QIODevice::Text);
-        QFileInfo fileInfo(filename);
+//void ChatServerForm::on_savePushButton_pressed()
+//{
+//    qDebug() << ChatList.count();
+//    if(ChatList.count() > 0) {
+//        qDebug("save File");
+//        QString filename = QFileDialog::getSaveFileName(this, "Select file to save as", ".",
+//                                                        "Text File (*.txt *.html *.c *.cpp *.h)");
+//        QFile file(filename);
+//        file.open(QIODevice::WriteOnly | QIODevice::Text);
+//        QFileInfo fileInfo(filename);
 
-        if(fileInfo.isWritable()){
-            QTextStream out(&file);
-            for (const auto& v : ChatList) {
-                QTreeWidgetItem* item = v;
-                out << item->text(0) << ", " << item->text(1) << ", ";
-                out << item->text(2) << ", " << item->text(3) << ", ";
-                out << item->text(4) << ", " << item->text(5) << "\n";
-            }
-        }
-        else{
-            QMessageBox::warning(this, "Error", "Can't Save this file",
-                                 QMessageBox::Ok);
-        }
+//        if(fileInfo.isWritable()){
+//            QTextStream out(&file);
+//            for (const auto& v : ChatList) {
+//                QTreeWidgetItem* item = v;
+//                out << item->text(0) << ", " << item->text(1) << ", ";
+//                out << item->text(2) << ", " << item->text(3) << ", ";
+//                out << item->text(4) << ", " << item->text(5) << "\n";
+//            }
+//        }
+//        else{
+//            QMessageBox::warning(this, "Error", "Can't Save this file",
+//                                 QMessageBox::Ok);
+//        }
 
-        file.close();
-    }
+//        file.close();
+//    }
+//    else{
+//        QMessageBox::warning(this, "Error", "No data",
+//                             QMessageBox::Ok);
+//    }
 
 
-}
+//}

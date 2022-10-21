@@ -50,6 +50,7 @@ private:
     qint64 totalSize;
     QByteArray outBlock;
     bool isSent;
+    int flag = 0;
 };
 #endif // WIDGET_H
 
