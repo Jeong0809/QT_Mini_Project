@@ -32,10 +32,12 @@ ShoplistManagerForm::ShoplistManagerForm(QWidget *parent) :
     ui->CustomerInfotreeWidget->setColumnWidth(0, 70);
     ui->ProductInfotreeWidget->setColumnWidth(0, 130);
 
+    /*처음 실행 시 오늘 날짜가 선택되어 있도록 초깃값을 설정해주었다*/
     date = new QDate();
     ui->dateEdit->setDate(date->currentDate());
 
-    connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showContextMenu(QPoint)));
+    connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(showContextMenu(QPoint)));
     connect(ui->searchLineEdit, SIGNAL(returnPressed()),
             this, SLOT(on_searchPushButton_clicked()));
 }
@@ -88,7 +90,7 @@ ShoplistManagerForm::~ShoplistManagerForm()
 int ShoplistManagerForm::makeId( )
 {
     if(shopList.size( ) == 0) {
-        return 100;
+        return 50000;
     }
     else {
         auto id = shopList.lastKey();
@@ -116,7 +118,6 @@ void ShoplistManagerForm::showContextMenu(const QPoint &pos)
 void ShoplistManagerForm::on_searchPushButton_clicked()
 {
     ui->searchTreeWidget->clear();
-    //    for(int i = 0; i < ui->treeWidget->columnCount(); i++)
     int i = ui->searchComboBox->currentIndex();
 
     auto flag = (i==0 || i==4) ? Qt::MatchCaseSensitive :
@@ -134,7 +135,6 @@ void ShoplistManagerForm::on_searchPushButton_clicked()
             QString Address = c->getAddress();
             int Price = c->getPrice();
             int TotalPrice = c->getTotalPrice();
-
             ShopItem* item = new ShopItem(id, Date, CustomerInfo, ProductInfo,
                                           Quantity, Address, Price, TotalPrice);
             ui->searchTreeWidget->addTopLevelItem(item);
@@ -186,8 +186,7 @@ void ShoplistManagerForm::on_addPushButton_clicked()
     if(ui->CustomerInfotreeWidget->topLevelItemCount() == 0
             || ui->ProductInfotreeWidget->topLevelItemCount() == 0 || Quantity == 0)
     {
-        QMessageBox::warning(this, tr("Error"), \
-                              tr("모두 입력해주세요"));
+        QMessageBox::warning(this, tr("Error"), tr("모두 입력해주세요"));
         return;
     }
 
@@ -204,7 +203,8 @@ void ShoplistManagerForm::on_addPushButton_clicked()
     }
 }
 
-//고객 정보 추가시 콤보 박스에 추가되는 고객 정보를 처리
+/*고객 정보 추가시 콤보 박스에 추가되는 고객 정보를 처리
+고객 정보를 고객 아이디와 함께 불러온 이유는 동명이인일 경우를 구별하기 위함이다.*/
 void ShoplistManagerForm::addClient(int CustomerID, QString name)
 {
     ui->CustomerInfocomboBox->addItem(name + " ( ID : " + QString::number(CustomerID) + " )" );
@@ -254,13 +254,16 @@ void ShoplistManagerForm::on_treeWidget_itemClicked(QTreeWidgetItem *item, int c
     ui->toolBox->setCurrentIndex(0);
 }
 
-
+/*고객 콤보박스에서 "이정연 ( ID : 100 )" 일 경우 오른쪽에서 5자, 왼쪽에서 3자를 빼내어
+문자형에서 정수형으로 변환한 후 clientmanagerform으로 보내준 다음 해당 고객 ID의 정보를 불러온다.*/
 void ShoplistManagerForm::on_CustomerInfocomboBox_textActivated(const QString &temp)
 {
     int ID =  temp.right(5).left(3).toInt();
     emit CustomerInfoSearched(ID);
 }
 
+/*Shopmanagerform에서 보낸 고객 ID를 통해 Clientmanagerform에서 해당 고객의 정보를 전체 전송한 후
+필요한 정보만 트리위젯에 추가해주는 방식이다.*/
 void ShoplistManagerForm::SendCustomerInfo(ClientItem* c)
 {
     ui->CustomerInfotreeWidget->clear();
@@ -271,6 +274,8 @@ void ShoplistManagerForm::SendCustomerInfo(ClientItem* c)
     ui->CustomerInfotreeWidget->addTopLevelItem(item);
 }
 
+/*Shopmanagerform에서 보낸 싱품명을 통해 Productmanagerform에서 해당 상품의 정보를 전체 전송한 후
+필요한 정보만 트리위젯에 추가해주는 방식이다.*/
 void ShoplistManagerForm::SendProductInfo(ProductItem* c)
 {
     ui->ProductInfotreeWidget->clear();
@@ -281,24 +286,8 @@ void ShoplistManagerForm::SendProductInfo(ProductItem* c)
     ui->ProductInfotreeWidget->addTopLevelItem(item);
 }
 
+/*상품 콤보박스의 경우 해당 상품명을 productmanagerform으로 보내준 다음 해당 상품의 정보를 불러온다.*/
 void ShoplistManagerForm::on_ProductInfocomboBox_textActivated(const QString &productname)
 {
     emit ProductInfoSearched(productname);
 }
-
-//void ShoplistManagerForm::SendCustomerInfo(QString name, QString phonenumber, QString address)
-//{
-//    //QTreeWidgetItem *item = static_cast<QTreeWidgetItem*>(c);
-//    //ui->CustomerInfotreeWidget->addTopLevelItem(item);
-//    ui->CustomerInfotreeWidget->clear();
-//    QTreeWidgetItem *item = new QTreeWidgetItem;
-//    item->setText(0, name);
-//    item->setText(1, phonenumber);
-//    item->setText(2, address);
-
-//    ui->CustomerInfotreeWidget->addTopLevelItem(item);
-//}
-
-
-
-

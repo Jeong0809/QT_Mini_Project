@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 8.0.1, 2022-10-21T16:58:41. -->
+<!-- Written by QtCreator 8.0.1, 2022-10-24T21:00:44. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -79,9 +79,6 @@
     <valuelist type="QVariantList" key="ClangTools.SelectedFiles"/>
     <valuelist type="QVariantList" key="ClangTools.SuppressedDiagnostics"/>
     <value type="bool" key="ClangTools.UseGlobalSettings">true</value>
-   </valuemap>
-   <valuemap type="QVariantMap" key="CppEditor.QuickFix">
-    <value type="bool" key="UseGlobalSettings">true</value>
    </valuemap>
   </valuemap>
  </data>
@@ -239,8 +236,8 @@
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">CSApp2</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:C:/QT_Create/CSAppPro_1016/CSApp.pro</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">C:/QT_Create/CSAppPro_1016/CSApp.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:C:/QT_Create/CSAppPro_1023/CSApp.pro</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">C:/QT_Create/CSAppPro_1023/CSApp.pro</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>

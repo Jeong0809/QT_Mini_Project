@@ -28,7 +28,7 @@
          </property>
          <column>
           <property name="text">
-           <string>ID</string>
+           <string>Order Number</string>
           </property>
          </column>
          <column>
@@ -87,7 +87,7 @@
         <string>&amp;Input</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0" colspan="2">
+        <item row="0" column="0">
          <layout class="QFormLayout" name="clientFormLayout">
           <item row="0" column="0">
            <widget class="QLabel" name="idLabel">
@@ -117,7 +117,7 @@
            <widget class="QDateEdit" name="dateEdit">
             <property name="dateTime">
              <datetime>
-              <hour>18</hour>
+              <hour>0</hour>
               <minute>0</minute>
               <second>0</second>
               <year>2022</year>
@@ -179,7 +179,20 @@
           </item>
          </layout>
         </item>
-        <item row="1" column="0" colspan="2">
+        <item row="1" column="0">
+         <widget class="QLabel" name="label">
+          <property name="font">
+           <font>
+            <pointsize>14</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Customer Information</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
          <widget class="QTreeWidget" name="CustomerInfotreeWidget">
           <property name="enabled">
            <bool>true</bool>
@@ -204,7 +217,20 @@
           </column>
          </widget>
         </item>
-        <item row="2" column="0" colspan="2">
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="font">
+           <font>
+            <pointsize>14</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Product Information</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
          <widget class="QTreeWidget" name="ProductInfotreeWidget">
           <property name="focusPolicy">
            <enum>Qt::StrongFocus</enum>
@@ -235,19 +261,23 @@
           </column>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QPushButton" name="addPushButton">
-          <property name="text">
-           <string>&amp;Add</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QPushButton" name="modifyPushButton">
-          <property name="text">
-           <string>&amp;Modify</string>
-          </property>
-         </widget>
+        <item row="5" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QPushButton" name="addPushButton">
+            <property name="text">
+             <string>&amp;Add</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="modifyPushButton">
+            <property name="text">
+             <string>&amp;Modify</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>

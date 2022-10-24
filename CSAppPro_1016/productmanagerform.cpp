@@ -22,7 +22,9 @@ ProductManagerForm::ProductManagerForm(QWidget *parent):QWidget(parent), ui(new 
     ui->treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->treeWidget->setColumnWidth(0, 60);
     ui->treeWidget->setColumnWidth(1, 150);
-    connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showContextMenu(QPoint)));
+
+    connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(showContextMenu(QPoint)));
     connect(ui->searchLineEdit, SIGNAL(returnPressed()),
             this, SLOT(on_searchPushButton_clicked()));
 }
@@ -71,7 +73,7 @@ ProductManagerForm::~ProductManagerForm()
 int ProductManagerForm::makeId( )
 {
     if(productList.size( ) == 0) {
-        return 100;
+        return 10000;
     } else {
         auto id = productList.lastKey();
         return ++id;
@@ -89,6 +91,11 @@ void ProductManagerForm::removeItem()
         ui->treeWidget->update();
         emit productremoved(index);
     }
+
+    ui->idLineEdit->clear();
+    ui->productnameLineEdit->clear();
+    ui->priceLineEdit->clear();
+    ui->categoryLineEdit->clear();
 }
 
 void ProductManagerForm::showContextMenu(const QPoint &pos)
@@ -100,13 +107,12 @@ void ProductManagerForm::showContextMenu(const QPoint &pos)
 void ProductManagerForm::on_searchPushButton_clicked()
 {
     ui->searchTreeWidget->clear();
-    //    for(int i = 0; i < ui->treeWidget->columnCount(); i++)
     int i = ui->searchComboBox->currentIndex();
-    //    auto flag = (i)? Qt::MatchCaseSensitive|Qt::MatchContains
-    //                   : Qt::MatchCaseSensitive;
 
     //MatchCaseSensitive : 대소문자 구별, MatchContains : 검색하는게 항목에 포함되어 있는지 확인
-    auto flag = (i==2 || i==0) ? Qt::MatchCaseSensitive:
+    /*검색 기능에서 상품 ID나 가격을 통해 검색 시 정확한 ID나 정확한 가격을 입력할 시에만
+    검색이 되도록 구현해주었다.*/
+    auto flag = (i==0 || i==2) ? Qt::MatchCaseSensitive:
                                  Qt::MatchCaseSensitive | Qt::MatchContains;
 
     {
@@ -142,6 +148,11 @@ void ProductManagerForm::on_modifyPushButton_clicked()
         productList[key] = c;
         emit productModified(productname, index);
     }
+
+    ui->idLineEdit->clear();
+    ui->productnameLineEdit->clear();
+    ui->priceLineEdit->clear();
+    ui->categoryLineEdit->clear();
 }
 
 void ProductManagerForm::on_addPushButton_clicked()
@@ -154,14 +165,11 @@ void ProductManagerForm::on_addPushButton_clicked()
     Category = ui->categoryLineEdit->text();
 
 
-    if(productname == "" || ui->priceLineEdit->text() == "" ||
-             Category == "")
+    if(productname == "" || ui->priceLineEdit->text() == "" || Category == "")
     {
-        QMessageBox::warning(this, tr("Error"), \
-                              tr("모두 입력해주세요"));
+        QMessageBox::warning(this, tr("Error"), tr("모두 입력해주세요"));
         return;
     }
-
 
     if(productname.length()) {
         ProductItem* c = new ProductItem(id, productname, price, Category);
@@ -169,8 +177,15 @@ void ProductManagerForm::on_addPushButton_clicked()
         ui->treeWidget->addTopLevelItem(c);
         emit productAdded(id, productname);
     }
+
+    ui->idLineEdit->clear();
+    ui->productnameLineEdit->clear();
+    ui->priceLineEdit->clear();
+    ui->categoryLineEdit->clear();
 }
 
+/*상품 정보를 담고 있는 트리위젯에서 해당 상품을 클릭했을 경우
+입력란의 lineedit에 해당 상품에 대한 텍스트가 보여질 수 있도록 구현하였다.*/
 void ProductManagerForm::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
 {
     Q_UNUSED(column);
@@ -181,6 +196,8 @@ void ProductManagerForm::on_treeWidget_itemClicked(QTreeWidgetItem *item, int co
     ui->toolBox->setCurrentIndex(0);
 }
 
+/*Shopmanagerform에서 상품정보 콤보박스를 클릭 시 하단 트리위젯에
+클릭한 상품의 정보들의 보여질 수 있도록 하기위한 시그널 함수*/
 void ProductManagerForm::SearchProductInfo(QString productname)
 {
     int i = 1;
@@ -188,14 +205,12 @@ void ProductManagerForm::SearchProductInfo(QString productname)
                    : Qt::MatchCaseSensitive;
     {
         auto items = ui->treeWidget->findItems(productname, flag, i);
-
         foreach(auto i, items) {
             ProductItem* c = static_cast<ProductItem*>(i);
             int id = c->ID();
             QString name = c->getProductName();
             QString category = c->getCategory();
             int price = c->getPrice();
-            //ClientItem* item = new ClientItem(id, name, number, address);
             emit ProductInfoSended(c);
         }
     }

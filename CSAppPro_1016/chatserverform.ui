@@ -23,6 +23,12 @@
       <layout class="QVBoxLayout" name="clientListVerticalLayout">
        <item>
         <widget class="QLabel" name="clientListLabel">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="text">
           <string>Client List</string>
          </property>
@@ -58,6 +64,19 @@
      </widget>
      <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="messageVerticalLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Chatting Log</string>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QTreeWidget" name="messageTreeWidget">
          <property name="rootIsDecorated">

@@ -25,7 +25,6 @@ typedef enum {
     Chat_LogOut,            // 로그 아웃(서버 단절) --> 초대 불가능
     Chat_Invite,            // 초대
     Chat_KickOut,           // 강퇴
-    Chat_LogInCheck         // 존재하는 고객인지 확인
 } Chat_Status;
 
 class ChatServerForm : public QWidget
@@ -73,6 +72,11 @@ private slots:
     void inviteClient();
     void kickOut();
     void on_clientTreeWidget_customContextMenuRequested(const QPoint &pos);
+
+    void CheckLogIn(QString);
+
+signals:
+    void SendLogInChecked(int);
 };
 
 #endif // CHATSERVERFORM_H

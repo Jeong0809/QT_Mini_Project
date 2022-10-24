@@ -29,6 +29,10 @@ private slots:
     void sendProtocol(Chat_Status, char*, int = 1020);
     void sendFile();
     void goOnSend(qint64);
+    void LogInCheckSended(int);
+
+signals:
+    void LogInChecked(QString);
 
 private:
     void closeEvent(QCloseEvent*) override;
@@ -51,6 +55,7 @@ private:
     QByteArray outBlock;
     bool isSent;
     int flag = 0;
+    int LogInCheck;
 };
 #endif // WIDGET_H
 

@@ -39,7 +39,6 @@ signals:
     void clientModified(int, QString, int);
     void clientdeleted(int, QString);
     void clientremoved(int);
-
     void CustomerInfoSended(ClientItem*);
 
 private:

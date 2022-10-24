@@ -57,7 +57,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(clientForm, SIGNAL(CustomerInfoSended(ClientItem*)),
             orderForm, SLOT(SendCustomerInfo(ClientItem*)));
 
-
     //Shopmanagerfoem에서 상품을 선택했을 때 해당 상품 정보가 treeWidget에 보여지도록
     //하기 위한 연결 과정
     connect(orderForm, SIGNAL(ProductInfoSearched(QString)),
@@ -73,17 +72,32 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     chatServerForm = new ChatServerForm(this);
+    //chatClientForm = new ChatClientForm(this);
     chatServerForm->setWindowTitle(tr("Chat Server"));
     ui->mdiArea->addSubWindow(chatServerForm);
+
+
+
+    /*채팅 서버에서 고객 리스트가 보여질 때 고객 탭에서 고객이 추가되거나 삭제되거나
+    변경될 경우 즉각 채팅 서버에도 반영될 수 있도록 하기 위해 SIGNAL, SLOT을 이용해
+    고객 정보에 대한 변경 사항을 보내준다.*/
     connect(clientForm, SIGNAL(clientAdded(int, QString)),
             chatServerForm, SLOT(addChatClient(int, QString)));
-
     connect(clientForm, SIGNAL(clientModified(int, QString, int)),
             chatServerForm, SLOT(modifyChatClient(int, QString, int)));
     connect(clientForm, SIGNAL(clientremoved(int)),
             chatServerForm, SLOT(removeChatClient(int)));
 
+
+
+
     clientForm->loadData();
+
+
+
+
+
+
 
 }
 
@@ -117,5 +131,10 @@ void MainWindow::on_actionChat_triggered()
 {
     chatClientForm = new ChatClientForm();
     chatClientForm->show();
+
+    connect(chatClientForm, SIGNAL(LogInChecked(QString)),
+            chatServerForm, SLOT(CheckLogIn(QString)));
+    connect(chatServerForm, SIGNAL(SendLogInChecked(int)),
+            chatClientForm, SLOT(LogInCheckSended(int)));
 }
 
