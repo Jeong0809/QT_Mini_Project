@@ -10,8 +10,16 @@
     <height>403</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <pointsize>10</pointsize>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Client Info</string>
+  </property>
+  <property name="windowOpacity">
+   <double>1.000000000000000</double>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
@@ -22,36 +30,33 @@
      <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="listVerticalLayout">
        <item>
-        <widget class="QTreeWidget" name="treeWidget">
-         <property name="rootIsDecorated">
-          <bool>false</bool>
-         </property>
-         <column>
-          <property name="text">
-           <string>ID</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Phone Number</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Address</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-       <item>
         <widget class="QTableView" name="tableView">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
          <property name="selectionBehavior">
           <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="showGrid">
+          <bool>true</bool>
+         </property>
+         <property name="gridStyle">
+          <enum>Qt::SolidLine</enum>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <property name="cornerButtonEnabled">
+          <bool>true</bool>
          </property>
          <attribute name="horizontalHeaderVisible">
           <bool>true</bool>
@@ -65,15 +70,15 @@
      </widget>
      <widget class="QToolBox" name="toolBox">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="inputPage">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>263</width>
-         <height>343</height>
+         <width>328</width>
+         <height>339</height>
         </rect>
        </property>
        <attribute name="label">
@@ -191,8 +196,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>263</width>
-         <height>343</height>
+         <width>328</width>
+         <height>339</height>
         </rect>
        </property>
        <attribute name="label">
@@ -200,30 +205,16 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="QTreeWidget" name="searchTreeWidget">
-          <property name="rootIsDecorated">
-           <bool>false</bool>
+         <widget class="QTableView" name="searchTableView">
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
           </property>
-          <column>
-           <property name="text">
-            <string>ID</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Name</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Phone Number</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Address</string>
-           </property>
-          </column>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
          </widget>
         </item>
         <item>

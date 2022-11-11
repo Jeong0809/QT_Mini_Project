@@ -10,6 +10,12 @@
     <height>490</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <pointsize>10</pointsize>
+    <bold>false</bold>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Client Info</string>
   </property>
@@ -22,57 +28,26 @@
      <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="listVerticalLayout">
        <item>
-        <widget class="QTreeWidget" name="treeWidget">
-         <property name="rootIsDecorated">
-          <bool>false</bool>
+        <widget class="QTableView" name="tableView">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
          </property>
-         <column>
-          <property name="text">
-           <string>Order</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Date</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Customer Info</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Product Info</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Quantity</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Address</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Price</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Total Price</string>
-          </property>
-         </column>
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
         </widget>
        </item>
       </layout>
      </widget>
      <widget class="QToolBox" name="toolBox">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="inputPage">
        <property name="geometry">
@@ -80,13 +55,51 @@
          <x>0</x>
          <y>0</y>
          <width>431</width>
-         <height>430</height>
+         <height>426</height>
         </rect>
        </property>
        <attribute name="label">
         <string>&amp;Input</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
+        <item row="3" column="0">
+         <widget class="QTreeWidget" name="CustomerInfotreeWidget">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="rootIsDecorated">
+           <bool>false</bool>
+          </property>
+          <column>
+           <property name="text">
+            <string>Name</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Phone Number</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Address</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label">
+          <property name="font">
+           <font>
+            <pointsize>14</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Customer Information</string>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="0">
          <layout class="QFormLayout" name="clientFormLayout">
           <item row="0" column="0">
@@ -117,12 +130,12 @@
            <widget class="QDateEdit" name="dateEdit">
             <property name="dateTime">
              <datetime>
-              <hour>15</hour>
+              <hour>9</hour>
               <minute>0</minute>
               <second>0</second>
               <year>2022</year>
               <month>9</month>
-              <day>28</day>
+              <day>26</day>
              </datetime>
             </property>
             <property name="calendarPopup">
@@ -179,45 +192,7 @@
           </item>
          </layout>
         </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label">
-          <property name="font">
-           <font>
-            <pointsize>14</pointsize>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="text">
-           <string>Customer Information</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QTreeWidget" name="CustomerInfotreeWidget">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="rootIsDecorated">
-           <bool>false</bool>
-          </property>
-          <column>
-           <property name="text">
-            <string>Name</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Phone Number</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Address</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-        <item row="3" column="0">
+        <item row="4" column="0">
          <widget class="QLabel" name="label_2">
           <property name="font">
            <font>
@@ -230,7 +205,25 @@
           </property>
          </widget>
         </item>
-        <item row="4" column="0">
+        <item row="7" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QPushButton" name="addPushButton">
+            <property name="text">
+             <string>&amp;Add</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="modifyPushButton">
+            <property name="text">
+             <string>&amp;Modify</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="6" column="0">
          <widget class="QTreeWidget" name="ProductInfotreeWidget">
           <property name="focusPolicy">
            <enum>Qt::StrongFocus</enum>
@@ -261,24 +254,6 @@
           </column>
          </widget>
         </item>
-        <item row="5" column="0">
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
-           <widget class="QPushButton" name="addPushButton">
-            <property name="text">
-             <string>&amp;Add</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="modifyPushButton">
-            <property name="text">
-             <string>&amp;Modify</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="searchPage">
@@ -287,7 +262,7 @@
          <x>0</x>
          <y>0</y>
          <width>431</width>
-         <height>430</height>
+         <height>426</height>
         </rect>
        </property>
        <attribute name="label">
@@ -295,50 +270,16 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="QTreeWidget" name="searchTreeWidget">
-          <property name="rootIsDecorated">
-           <bool>false</bool>
+         <widget class="QTableView" name="searchTableView">
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
           </property>
-          <column>
-           <property name="text">
-            <string>Order</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Date</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Customer Info</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Product Info</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Quantity</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Address</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Price</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Total Price</string>
-           </property>
-          </column>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
          </widget>
         </item>
         <item>

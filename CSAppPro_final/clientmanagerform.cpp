@@ -1,6 +1,5 @@
 #include "clientmanagerform.h"
 #include "ui_clientmanagerform.h"
-#include "clientitem.h"
 
 #include <QFile>
 #include <QMenu>
@@ -30,50 +29,32 @@ ClientManagerForm::ClientManagerForm(QWidget *parent)
     menu = new QMenu;
     /*메뉴 생성 후 Remove를 메뉴에 추가*/
     menu->addAction(removeAction);
-    ui->treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    /*Client 트리 위젯 컬럼명 공간 조절*/
-    ui->treeWidget->setColumnWidth(0, 60);
-    ui->treeWidget->setColumnWidth(3, 180);
-
-    /*Clientmanager 트리 위젯에서 마우스 오른쪽 버튼 클릭시 해당 위치에서 Remove 창이 나오도록 연결*/
-    connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)),
-            this, SLOT(showContextMenu(QPoint)));
-
+    /*ClientManager 테이블 뷰에서 마우스 오른쪽 버튼 클릭시 해당 위치에서 Remove 창이 나오도록 연결*/
     connect(ui->tableView, SIGNAL(customContextMenuRequested(QPoint)),
-            this, SLOT(showContextMenu_Table(QPoint)));
+            this, SLOT(showContextMenu(QPoint)));
 
     /*검색 시 lineedit에 검색할 단어 입력 후 search 버튼 누르면 검색된 결과가 출력되도록 연결*/
     connect(ui->searchLineEdit, SIGNAL(returnPressed()),
             this, SLOT(on_searchPushButton_clicked()));
+
+    /*검색 모델의 행렬을 0, 4로 초기화*/
+    searchModel = new QStandardItemModel(0, 4);
+
+    /*검색 창에서의 헤더 설정*/
+    searchModel->setHeaderData(0, Qt::Horizontal, tr("ID"));
+    searchModel->setHeaderData(1, Qt::Horizontal, tr("Name"));
+    searchModel->setHeaderData(2, Qt::Horizontal, tr("Phone Number"));
+    searchModel->setHeaderData(3, Qt::Horizontal, tr("Address"));
+
+    /*테이블 뷰에 searchmodel을 통한 모델 지정*/
+    ui->searchTableView->setModel(searchModel);
 }
 
-/*clientlist.txt 파일에서 저장되어 있었던 고객 데이터를 불러오는 함수*/
+/*clientlist.db 파일에서 저장되어 있었던 고객 데이터를 불러오는 함수*/
 void ClientManagerForm::loadData()
 {
-    QFile file("clientlist.txt");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
-
-    QTextStream in(&file);
-
-    /*in이 파일의 끝이 아니라면 줄마다 라인별로 읽어온다.*/
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        QList<QString> row = line.split(", ");      /*ID, 이름, 휴대폰 번호, 주소를 ", "로 구분*/
-        if(row.size()) {
-            int id = row[0].toInt();
-            ClientItem* c = new ClientItem(id, row[1], row[2], row[3]);
-            ui->treeWidget->addTopLevelItem(c);     /*txt파일에 저장되어 있던 고객 정보를 트리위젯에 불러옴*/
-            clientList.insert(id, c);               /*clientList에도 해당 내용 추가*/
-
-            /*Shopmanagerform에서 콤보박스를 통해 고객 정보를 가져오기 위해 시그널 전송*/
-            emit clientAdded(id, row[1]);
-        }
-    }
-    file.close( );
-
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "clientConnection");
     db.setDatabaseName("clientlist.db");
 
@@ -93,54 +74,44 @@ void ClientManagerForm::loadData()
         clientModel->setHeaderData(1, Qt::Horizontal, tr("Name"));
         clientModel->setHeaderData(2, Qt::Horizontal, tr("Phone Number"));
         clientModel->setHeaderData(3, Qt::Horizontal, tr("Address"));
-
         ui->tableView->setModel(clientModel);
     }
+
+    for(int i = 0; i < clientModel->rowCount(); i++) {
+        int id = clientModel->data(clientModel->index(i, 0)).toInt();
+        QString name = clientModel->data(clientModel->index(i, 1)).toString();
+        //clientList.insert(id, clientModel->index(i, 0));
+        emit clientAdded(id, name);
+    }
+
+    /*Client 테이블 뷰의 컬럼명 공간 조절*/
+    ui->tableView->setColumnWidth(0, 70);
+    ui->tableView->setColumnWidth(1, 80);
+    ui->tableView->setColumnWidth(2, 120);
+    ui->tableView->setColumnWidth(3, 300);
 }
 
-/*clientlist.txt 파일에 고객 정보의 데이터를 ", "로 구분해서 저장해준다*/
+/*clientlist.db 파일에 고객 정보의 데이터를 저장해준다*/
 ClientManagerForm::~ClientManagerForm()
 {
     delete ui;
-
-    QFile file("clientlist.txt");
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return;
-
-    //ID, 고객명, 휴대폰번호, 주소를 ,로 구분해서 저장한다.
-    QTextStream out(&file);
-
-    /*처음 데이터부터 clientList 끝까지 ID, 이름, 휴대폰번호, 주소를 콤마로 구분하여 데이터 저장*/
-    for (const auto& v : clientList) {
-        ClientItem* c = v;
-        out << c->ID() << ", " << c->getName() << ", ";
-        out << c->getPhoneNumber() << ", ";
-        out << c->getAddress() << "\n";
-    }
-    file.close( );
-
     QSqlDatabase db = QSqlDatabase::database("clientConnection");
     if(db.isOpen()) {
         clientModel->submitAll();
         delete clientModel;
+        delete searchModel;
         db.commit();
         db.close();
     }
 }
 
-bool ClientManagerForm::createConnection()
-{
-    return true;
-}
-
-
 /*100번부터 고객 ID가 자동으로 부여될 수 있도록 설정하였다.*/
 int ClientManagerForm::makeId( )
 {
-    if(clientList.size( ) == 0) {       /*clientList의 사이즈가 0이면 데이터가 없는 것이므로 ID가 100번부터 시작*/
+    if(clientModel->rowCount() == 0) {       /*clientList의 사이즈가 0이면 데이터가 없는 것이므로 ID가 100번부터 시작*/
         return 00001;
     } else {
-        auto id = clientList.lastKey(); /*clientList의 마지막 키의 ID에서 +1한 ID 번호 자동 부여*/
+        auto id = clientModel->data(clientModel->index(clientModel->rowCount()-1, 0)).toInt(); /*clientList의 마지막 키의 ID에서 +1한 ID 번호 자동 부여*/
         return ++id;
     }
 }
@@ -148,24 +119,17 @@ int ClientManagerForm::makeId( )
 /*고객 데이터에서 선택한 고객 정보를 삭제하는 함수*/
 void ClientManagerForm::removeItem()
 {
-    /*고객 삭제 같은 경우 삭제하고자 하는 고객을 클릭하고 마우스 오른쪽 버튼을 눌렀을 때
-    remove action을 통해 삭제하기 때문에 해당 인덱스를 SIGNAL로 보내준다*/
-    QTreeWidgetItem* item = ui->treeWidget->currentItem();
-
     QModelIndex idx = ui->tableView->currentIndex();
     int ID = idx.sibling(idx.row(), 0).data().toInt();
 
+    if(idx.isValid()) {
+        /*테이블뷰에서 클릭한 정보의 행 번호를 index에 저장*/
+        int index = ui->tableView->currentIndex().row();
 
-    if(item != nullptr) {
-        int index = ui->treeWidget->currentIndex().row();
-
-        /*clientList에서 현재 클릭한 item의 ID에 해당하는 고객 정보를 삭제*/
-        clientList.remove(item->text(0).toInt());
-
-        /*트리 위젯에서도 해당 item의 고객 정보 제거*/
-        ui->treeWidget->takeTopLevelItem(ui->treeWidget->indexOfTopLevelItem(item));
-        delete item;
-        ui->treeWidget->update();
+        client_query->prepare("DELETE FROM Customer WHERE c_id = ?;");
+        client_query->addBindValue(ID);
+        client_query->exec();
+        clientModel->select();
 
         /*Shopmanagerform에서의 고객 정보 콤보박스에서도 삭제가 적용되기 위해 시그널 전송*/
         emit clientremoved(index);
@@ -176,21 +140,10 @@ void ClientManagerForm::removeItem()
     ui->nameLineEdit->clear();
     ui->phoneNumberLineEdit->clear();
     ui->addressLineEdit->clear();
-
-    client_query->prepare("DELETE FROM Customer WHERE c_id = ?;");
-    client_query->addBindValue(ID);
-    client_query->exec();
-    clientModel->select();
 }
 
-/*트리위젯에서 마우스 오른쪽 버튼의 위치에 해당하는 행위를 인식하기 위한 함수*/
+/*테이블 뷰에서 마우스 오른쪽 버튼의 위치에 해당하는 행위를 인식하기 위한 함수*/
 void ClientManagerForm::showContextMenu(const QPoint &pos)
-{
-    QPoint globalPos = ui->treeWidget->mapToGlobal(pos);
-    menu->exec(globalPos);
-}
-
-void ClientManagerForm::showContextMenu_Table(const QPoint &pos)
 {
     QPoint globalPos = ui->tableView->mapToGlobal(pos);
         if(ui->tableView->indexAt(pos).isValid())
@@ -200,30 +153,39 @@ void ClientManagerForm::showContextMenu_Table(const QPoint &pos)
 /*Search 버튼을 눌렀을 때 수행되는 함수*/
 void ClientManagerForm::on_searchPushButton_clicked()
 {
-    ui->searchTreeWidget->clear();
+    searchModel->clear();
+
     /*검색 콤보박스에서의 인덱스 (ID(0), 이름(1), 휴대폰번호(2), 주소(3))*/
     int i = ui->searchComboBox->currentIndex();
 
     /*MatchCaseSensitive : 대소문자 구별, MatchContains : 검색하는게 항목에 포함되어 있는지 확인*/
     auto flag = (i)? Qt::MatchCaseSensitive|Qt::MatchContains
                    : Qt::MatchCaseSensitive;
-    {
-        /*검색창에 입력된 텍스트를 통해 고객 정보 트리위젯에서 flag 조건을 통해 검색,
+
+    /*검색창에 입력된 텍스트를 통해 고객 정보 트리위젯에서 flag 조건을 통해 검색,
           i를 통해 어떤 항목으로 검색할지 결정*/
-        auto items = ui->treeWidget->findItems(ui->searchLineEdit->text(), flag, i);
+    QModelIndexList indexes = clientModel->match(clientModel->index(0, i), Qt::EditRole, ui->searchLineEdit->text(), -1, Qt::MatchFlags(flag));
 
-        foreach(auto i, items) {
-            //i의 자료형을 ClientItem 형으로 변환 후 고정
-            ClientItem* c = static_cast<ClientItem*>(i);
-            int id = c->ID();
-            QString name = c->getName();
-            QString number = c->getPhoneNumber();
-            QString address = c->getAddress();
-            ClientItem* item = new ClientItem(id, name, number, address);
+    foreach(auto ix, indexes) {
+        int id = clientModel->data(ix.siblingAtColumn(0)).toInt(); //c->id();
+        QString name = clientModel->data(ix.siblingAtColumn(1)).toString();
+        QString number = clientModel->data(ix.siblingAtColumn(2)).toString();
+        QString address = clientModel->data(ix.siblingAtColumn(3)).toString();
+        QStringList strings;
+        strings << QString::number(id) << name << number << address;
 
-            /*검색을 통해 찾은 item 정보를 search 트리위젯에 나타냄*/
-            ui->searchTreeWidget->addTopLevelItem(item);
+        QList<QStandardItem *> items;
+        for (int i = 0; i < 4; ++i) {
+            items.append(new QStandardItem(strings.at(i)));
         }
+
+        /*search Table View에 헤더 추가 및 데이터 추가*/
+        searchModel->appendRow(items);
+        searchModel->setHeaderData(0, Qt::Horizontal, tr("ID"));
+        searchModel->setHeaderData(1, Qt::Horizontal, tr("Name"));
+        searchModel->setHeaderData(2, Qt::Horizontal, tr("Phone Number"));
+        searchModel->setHeaderData(3, Qt::Horizontal, tr("Address"));
+        ui->searchTableView->resizeColumnsToContents();
     }
 }
 
@@ -231,43 +193,27 @@ void ClientManagerForm::on_searchPushButton_clicked()
 void ClientManagerForm::on_modifyPushButton_clicked()
 {
     /*트리위젯에서 클릭한 고객 정보를 item에 저장*/
-    QTreeWidgetItem* item = ui->treeWidget->currentItem();   
+    QModelIndex idx = ui->tableView->currentIndex();
 
-    QString name, number, address;
-    int ID = ui->idLineEdit->text().toInt();
-    name = ui->nameLineEdit->text();
-    number = ui->phoneNumberLineEdit->text();
-    address = ui->addressLineEdit->text();
+    if(idx.isValid()) {
 
-    client_query->prepare("UPDATE Customer SET c_name = ?, c_phone_number = ?, c_address = ? WHERE c_id = ?;");
-    client_query->bindValue(0, name);
-    client_query->bindValue(1, number);
-    client_query->bindValue(2, address);
-    client_query->bindValue(3, ID);
-    client_query->exec();
-    clientModel->select();
+        QString name, number, address;
+        int index = ui->tableView->currentIndex().row();
+        int ID = ui->idLineEdit->text().toInt();
+        name = ui->nameLineEdit->text();
+        number = ui->phoneNumberLineEdit->text();
+        address = ui->addressLineEdit->text();
 
-    if(item != nullptr) {
-        /*트리위젯에서 선택한 고객 정보의 행을 저장*/
-        int index = ui->treeWidget->currentIndex().row();
-
-        /*트리위젯에서 선택한 고객 정보의 ID 저장*/
-        int key = item->text(0).toInt();
-
-        /*ID에 해당하는 고객 정보 객체*/
-        ClientItem* c = clientList[key];
-
-        /*사용자가 입력한 값으로 데이터 변경*/
-        c->setName(name);
-        c->setPhoneNumber(number);
-        c->setAddress(address);
-
-        /*변경한 데이터의 객체를 clientList에 저장*/
-        clientList[key] = c;
-        ui->treeWidget->update();
+        client_query->prepare("UPDATE Customer SET c_name = ?, c_phone_number = ?, c_address = ? WHERE c_id = ?;");
+        client_query->bindValue(0, name);
+        client_query->bindValue(1, number);
+        client_query->bindValue(2, address);
+        client_query->bindValue(3, ID);
+        client_query->exec();
+        clientModel->select();
 
         /*shopmanagerform의 고객 정보 콤보박스에 변경된 값 전달하는 시그널*/
-        emit clientModified(key, name, index);
+        emit clientModified(ID, name, index);
     }
 
     /*고객 데이터를 변경하고 난 이후에 모든 입력란을 clear 해준다.*/
@@ -284,6 +230,7 @@ void ClientManagerForm::on_addPushButton_clicked()
 
     /*ID는 자동 생성*/
     int id = makeId();
+    ui->idLineEdit->setText(QString::number(id));
 
     /*이름, 주소, 휴대폰 번호는 입력해줌*/
     name = ui->nameLineEdit->text();
@@ -297,16 +244,10 @@ void ClientManagerForm::on_addPushButton_clicked()
         return;
     }
 
-    /*이름이 입력되면 해당 정보들을 객체로 clientList에 추가*/
-    if(name.length()) {
-        ClientItem* c = new ClientItem(id, name, number, address);
-        clientList.insert(id, c);
-
-        /*트리위젯에 해당 정보 추가*/
-        ui->treeWidget->addTopLevelItem(c);
-        ui->treeWidget->update();
-
-        /*고객 정보가 추가되면 shopmanagerform에서 콤보박스에 해당 고객 정보 추가되는 시그널*/
+    QSqlDatabase db = QSqlDatabase::database("clientConnection");
+    if(db.isOpen() && name.length()) {
+        client_query->exec(QString("INSERT INTO Customer VALUES(%1, '%2', '%3', '%4')").arg(id).arg(name).arg(number).arg(address));
+        clientModel->select();
         emit clientAdded(id, name);
     }
 
@@ -315,36 +256,29 @@ void ClientManagerForm::on_addPushButton_clicked()
     ui->nameLineEdit->clear();
     ui->phoneNumberLineEdit->clear();
     ui->addressLineEdit->clear();
-
-    client_query->exec(QString("INSERT INTO Customer VALUES(%1, '%2', '%3', '%4')").arg(id).arg(name).arg(number).arg(address));
-    clientModel->select();
-}
-
-/*고객 정보를 담고 있는 트리위젯에서 해당 고객을 클릭했을 경우
-입력란의 lineedit에 해당 고객에 대한 텍스트가 보여질 수 있도록 구현하였다.*/
-void ClientManagerForm::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
-{
-    Q_UNUSED(column);
-    ui->idLineEdit->setText(item->text(0));
-    ui->nameLineEdit->setText(item->text(1));
-    ui->phoneNumberLineEdit->setText(item->text(2));
-    ui->addressLineEdit->setText(item->text(3));
-
-    /*Search toolBox가 선택되어 있을 때 트리위젯의 아이템 클릭시 Input toolBox로 변경된다.*/
-    ui->toolBox->setCurrentIndex(0);
 }
 
 /*Shopmanagerform에서 고객정보 콤보박스를 클릭 시 하단 트리위젯에
 클릭한 고객의 정보들의 보여질 수 있도록 하기위한 슬롯 함수*/
 void ClientManagerForm::SearchCustomerInfo(int ID)
 {
-    ClientItem* c = clientList[ID];
+    auto flag = Qt::MatchCaseSensitive;
+    QModelIndexList indexes = clientModel->match(clientModel->index(0, 0), Qt::EditRole, ID, -1, Qt::MatchFlags(flag));
 
-    /*Shopmanagerform에서 받아온 ID를 통해 고객 정보를 찾아 해당 객체를 넘겨줌*/
-    emit CustomerInfoSended(c);
+    foreach(auto ix, indexes) {
+        QString name = clientModel->data(ix.siblingAtColumn(1)).toString();
+        QString number = clientModel->data(ix.siblingAtColumn(2)).toString();
+        QString address = clientModel->data(ix.siblingAtColumn(3)).toString();
+        QStringList strings;
+        strings << name << number << address;
+
+        /*Shopmanagerform에서 받아온 ID를 통해 고객 정보를 찾아 해당 정보를 넘겨줌*/
+        emit CustomerInfoSended(strings);
+    }
 }
 
-
+/*고객 정보를 담고 있는 테이블 뷰에서 해당 고객을 클릭했을 경우
+입력란의 lineedit에 해당 고객에 대한 텍스트가 보여질 수 있도록 구현하였다.*/
 void ClientManagerForm::on_tableView_clicked(const QModelIndex &idx)
 {
     QString ID = idx.sibling(idx.row(), 0).data().toString();
@@ -357,4 +291,3 @@ void ClientManagerForm::on_tableView_clicked(const QModelIndex &idx)
     ui->phoneNumberLineEdit->setText(phone_number);
     ui->addressLineEdit->setText(address);
 }
-

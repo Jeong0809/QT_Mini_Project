@@ -24,6 +24,11 @@ public:
 private slots:
     void on_actionClient_triggered();   /*Chat 버튼 클릭시 동작되는 함수*/
     void on_actionChat_triggered();     /*Client 버튼 클릭시 동작되는 함수*/
+    void on_actionProduct_triggered();
+    void on_actionShoplist_triggered();
+
+
+    void on_actionServer_triggered();
 
 private:
     Ui::MainWindow *ui;                 /*MainWindow의 UI*/

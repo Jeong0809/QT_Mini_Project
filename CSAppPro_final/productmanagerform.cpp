@@ -1,6 +1,5 @@
 #include "productmanagerform.h"
 #include "ui_productmanagerform.h"
-#include "productitem.h"
 
 #include <QFile>
 #include <QMenu>
@@ -29,61 +28,44 @@ ProductManagerForm::ProductManagerForm(QWidget *parent):QWidget(parent), ui(new 
     menu = new QMenu;
     /*메뉴 생성 후 Remove 추가*/
     menu->addAction(removeAction);
-    ui->treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    /*Product 트리 위젯 컬럼명 공간 조절*/
-    ui->treeWidget->setColumnWidth(0, 60);
-    ui->treeWidget->setColumnWidth(1, 150);
-
-    /*Productmanager 트리 위젯에서 마우스 오른쪽 버튼 클릭시 해당 위치에서 Remove 창이 나오도록 연결*/
-    connect(ui->treeWidget, SIGNAL(customContextMenuRequested(QPoint)),
-            this, SLOT(showContextMenu(QPoint)));
-
+    /*Productmanager 테이블 뷰에서 마우스 오른쪽 버튼 클릭시 해당 위치에서 Remove 창이 나오도록 연결*/
     connect(ui->tableView, SIGNAL(customContextMenuRequested(QPoint)),
-            this, SLOT(showContextMenu_Table(QPoint)));
+            this, SLOT(showContextMenu(QPoint)));
 
     /*검색 시 lineedit에 검색할 단어 입력 후 search 버튼 누르면 검색된 결과가 출력되도록 연결*/
     connect(ui->searchLineEdit, SIGNAL(returnPressed()),
             this, SLOT(on_searchPushButton_clicked()));
+
+    /*검색 모델의 행렬을 0, 5로 초기화*/
+    searchModel = new QStandardItemModel(0, 5);
+
+    /*검색 창에서의 헤더 설정*/
+    searchModel->setHeaderData(0, Qt::Horizontal, tr("ID"));
+    searchModel->setHeaderData(1, Qt::Horizontal, tr("Product Name"));
+    searchModel->setHeaderData(2, Qt::Horizontal, tr("Price"));
+    searchModel->setHeaderData(3, Qt::Horizontal, tr("Category"));
+    searchModel->setHeaderData(4, Qt::Horizontal, tr("Total\nQuantity"));
+
+    /*테이블 뷰에 searchmodel을 통한 모델 지정*/
+    ui->searchTableView->setModel(searchModel);
 }
 
-/*productlist.txt 파일에서 저장되어 있었던 상품 데이터를 불러오는 함수*/
+/*productlist.db 파일에서 저장되어 있었던 상품 데이터를 불러오는 함수*/
 void ProductManagerForm::loadData()
 {
-    QFile file("productlist.txt");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
-
-    QTextStream in(&file);
-
-    /*in이 파일의 끝이 아니라면 줄마다 라인별로 읽어온다.*/
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        QList<QString> row = line.split(", ");      /*ID, 상품명, 상품가격, 상품 카테고리를 ", "로 구분*/
-        if(row.size()) {
-            int id = row[0].toInt();
-            int price = row[2].toInt();
-            ProductItem* c = new ProductItem(id, row[1], price, row[3]);
-            ui->treeWidget->addTopLevelItem(c);     /*txt파일에 저장되어 있던 상품 정보를 트리위젯에 추가*/
-            productList.insert(id, c);              /*productList에도 불러온 내용 추가*/
-
-            /*Shopmanagerform에서 콤보박스를 통해 상품 정보를 가져오기 위해 시그널 전송*/
-            emit productAdded(id, row[1]);
-        }
-    }
-    file.close( );
-
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "productConnection");
     db.setDatabaseName("productlist.db");
 
     if(db.open()){
 
         product_query = new QSqlQuery(db);
-        product_query->exec("CREATE  TABLE IF NOT EXISTS Product ( p_id NUMBER(20) PRIMARY KEY,"
+        product_query->exec("CREATE  TABLE IF NOT EXISTS Product ( p_id INTEGER PRIMARY KEY,"
                             "p_name VARCHAR2(100) NOT NULL,"
-                            "p_price NUMBER(20),"
-                            "p_category VARCHAR2(100));");
+                            "p_price INTEGER,"
+                            "p_category VARCHAR2(100),"
+                            "p_quantity INTEGER );");
 
         productModel = new QSqlTableModel(this, db);
         productModel->setTable("Product");
@@ -93,65 +75,49 @@ void ProductManagerForm::loadData()
         productModel->setHeaderData(1, Qt::Horizontal, tr("Product Name"));
         productModel->setHeaderData(2, Qt::Horizontal, tr("Price"));
         productModel->setHeaderData(3, Qt::Horizontal, tr("Category"));
+        productModel->setHeaderData(4, Qt::Horizontal, tr("Total\nQuantity"));
 
         ui->tableView->setModel(productModel);
     }
+
+    for(int i = 0; i < productModel->rowCount(); i++) {
+        int id = productModel->data(productModel->index(i, 0)).toInt();
+        QString name = productModel->data(productModel->index(i, 1)).toString();
+        //clientList.insert(id, clientModel->index(i, 0));
+        emit productAdded(id, name);
+    }
+
+    /*Product 테이블 뷰의 컬럼명 공간 조절*/
+    ui->tableView->setColumnWidth(0, 70);
+    ui->tableView->setColumnWidth(1, 200);
+    ui->tableView->setColumnWidth(2, 90);
+    ui->tableView->setColumnWidth(3, 100);
+    ui->tableView->setColumnWidth(4, 70);
 }
 
-/*productlist.txt 파일에 상품 정보의 데이터를 ", "로 구분해서 저장*/
+/*productlist.db 파일에 상품 정보의 데이터를 저장*/
 ProductManagerForm::~ProductManagerForm()
 {
     delete ui;
-
-    QFile file("productlist.txt");
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return;
-
-    /*ID, 상품명, 상품가격, 상품 카테고리를 ", "로 구분해서 저장*/
-    QTextStream out(&file);
-
-    /*처음 데이터부터 productList 끝까지 ID, 상품명, 상품가격, 상품 카테고리를 콤마로 구분하여 데이터 저장*/
-    for (const auto& v : productList) {
-        ProductItem* c = v;
-        out << c->ID() << ", " << c->getProductName() << ", ";
-        out << c->getPrice() << ", ";
-        out << c->getCategory() << "\n";
-    }
-    file.close( );
-
     QSqlDatabase db = QSqlDatabase::database("clientConnection");
     if(db.isOpen()) {
         productModel->submitAll();
         delete productModel;
+        delete searchModel;
         db.commit();
         db.close();
     }
-}
-
-bool ProductManagerForm::createConnection( )
-{
-//    QSqlDatabase db = QSqlDatabase::database();
-//    db.setDatabaseName("productlist.db");
-
-//    if(!db.open()) return false;
-
-//    product_query = new QSqlQuery;
-//    product_query->exec("CREATE  TABLE IF NOT EXISTS Product ( p_id NUMBER(20) PRIMARY KEY,"
-//                        "p_name VARCHAR2(100) NOT NULL,"
-//                        "p_price NUMBER(20),"
-//                        "p_category VARCHAR2(100));");
-    return true;
 }
 
 /*10000번부터 상품 ID가 자동으로 부여될 수 있도록 설정하였다.*/
 int ProductManagerForm::makeId( )
 {
     /*productList의 사이즈가 0이면 데이터가 없는 것이므로 ID가 10000번부터 시작*/
-    if(productList.size( ) == 0) {
+    if(productModel->rowCount() == 0) {
         return 50000;
     } else {
         /*productList의 마지막 키의 ID에서 +1한 ID 번호 자동 부여*/
-        auto id = productList.lastKey();
+        auto id = productModel->data(productModel->index(productModel->rowCount()-1, 0)).toInt(); /*clientList의 마지막 키의 ID에서 +1한 ID 번호 자동 부여*/
         return ++id;
     }
 }
@@ -161,23 +127,19 @@ void ProductManagerForm::removeItem()
 {
     /*상품 삭제 같은 경우 삭제하고자 하는 상품을 클릭하고 마우스 오른쪽 버튼을 눌렀을 때
     remove action을 통해 삭제하기 때문에 해당 인덱스를 SIGNAL로 보내준다*/
-    QTreeWidgetItem* item = ui->treeWidget->currentItem();
+
 
     QModelIndex idx = ui->tableView->currentIndex();
     int ID = idx.sibling(idx.row(), 0).data().toInt();
 
-    if(item != nullptr) {
+    if(idx.isValid()) {
 
-        /*트리위젯에서 클릭한 정보의 행 번호를 index에 저장*/
-        int index = ui->treeWidget->currentIndex().row();
-
-        /*productList에서 현재 클릭한 item의 ID에 해당하는 상품 정보를 삭제*/
-        productList.remove(item->text(0).toInt());
-
-        /*트리 위젯에서도 해당 item의 상품 정보 제거*/
-        ui->treeWidget->takeTopLevelItem(ui->treeWidget->indexOfTopLevelItem(item));
-        delete item;
-        ui->treeWidget->update();
+        /*테이블뷰에서 클릭한 정보의 행 번호를 index에 저장*/
+        int index = ui->tableView->currentIndex().row();
+        product_query->prepare("DELETE FROM Product WHERE p_id = ?;");
+        product_query->addBindValue(ID);
+        product_query->exec();
+        productModel->select();
 
         /*Shopmanagerform에서의 상품 정보 콤보박스에서도 삭제가 적용되기 위해 시그널 전송*/
         emit productremoved(index);
@@ -188,21 +150,12 @@ void ProductManagerForm::removeItem()
     ui->productnameLineEdit->clear();
     ui->priceLineEdit->clear();
     ui->categoryLineEdit->clear();
+    ui->quantityLineEdit->clear();
 
-    product_query->prepare("DELETE FROM Product WHERE p_id = ?;");
-    product_query->addBindValue(ID);
-    product_query->exec();
-    productModel->select();
 }
 
-/*트리위젯에서 마우스 오른쪽 버튼의 위치에 해당하는 행위를 인식하기 위한 함수*/
+/*테이블 뷰에서 마우스 오른쪽 버튼의 위치에 해당하는 행위를 인식하기 위한 함수*/
 void ProductManagerForm::showContextMenu(const QPoint &pos)
-{
-    QPoint globalPos = ui->treeWidget->mapToGlobal(pos);
-    menu->exec(globalPos);
-}
-
-void ProductManagerForm::showContextMenu_Table(const QPoint &pos)
 {
     QPoint globalPos = ui->tableView->mapToGlobal(pos);
         if(ui->tableView->indexAt(pos).isValid())
@@ -212,7 +165,8 @@ void ProductManagerForm::showContextMenu_Table(const QPoint &pos)
 /*Search 버튼을 눌렀을 때 검색 기능이 수행되는 함수*/
 void ProductManagerForm::on_searchPushButton_clicked()
 {
-    ui->searchTreeWidget->clear();
+    searchModel->clear();
+
     /*검색 콤보박스에서의 인덱스 (ID(0), 상품명(1), 상품가격(2), 카테고리(3))*/
     int i = ui->searchComboBox->currentIndex();
 
@@ -222,23 +176,36 @@ void ProductManagerForm::on_searchPushButton_clicked()
     auto flag = (i==0 || i==2) ? Qt::MatchCaseSensitive:
                                  Qt::MatchCaseSensitive | Qt::MatchContains;
 
-    {
-        /*검색창에 입력된 텍스트를 통해 상품 정보 트리위젯에서 flag 조건을 통해 검색,
+    /*검색창에 입력된 텍스트를 통해 상품 정보 트리위젯에서 flag 조건을 통해 검색,
           i를 통해 어떤 항목으로 검색할지 결정*/
-        auto items = ui->treeWidget->findItems(ui->searchLineEdit->text(), flag, i);
+    QModelIndexList indexes = productModel->match(productModel->index(0, i), Qt::EditRole, ui->searchLineEdit->text(), -1, Qt::MatchFlags(flag));
 
-        foreach(auto i, items) {
-            /*i의 자료형을 ProductItem 형으로 변환 후 고정*/
-            ProductItem* c = static_cast<ProductItem*>(i);
-            int id = c->ID();
-            QString productname = c->getProductName();
-            QString Category = c->getCategory();
-            int price = c->getPrice();
-            ProductItem* item = new ProductItem(id, productname, price, Category);
+    foreach(auto ix, indexes) {
+        int id = productModel->data(ix.siblingAtColumn(0)).toInt(); //c->id();
+        QString productname = productModel->data(ix.siblingAtColumn(1)).toString();
+        int price = productModel->data(ix.siblingAtColumn(2)).toInt();
+        QString Category = productModel->data(ix.siblingAtColumn(3)).toString();
+        int quantity = productModel->data(ix.siblingAtColumn(4)).toInt();
+        QStringList strings;
+        strings << QString::number(id) << productname
+                << QString::number(price) << Category << QString::number(quantity);
 
-            /*검색을 통해 찾은 item 정보를 search 트리위젯에 추가*/
-            ui->searchTreeWidget->addTopLevelItem(item);
+        QList<QStandardItem *> items;
+        for (int i = 0; i < 5; ++i) {
+            items.append(new QStandardItem(strings.at(i)));
         }
+
+        /*search Table View에 헤더 추가 및 데이터 추가*/
+        searchModel->appendRow(items);
+        searchModel->setHeaderData(0, Qt::Horizontal, tr("Order\nNumber"));
+        searchModel->setHeaderData(1, Qt::Horizontal, tr("Date"));
+        searchModel->setHeaderData(2, Qt::Horizontal, tr("Customer"));
+        searchModel->setHeaderData(3, Qt::Horizontal, tr("Product"));
+        searchModel->setHeaderData(4, Qt::Horizontal, tr("Order\nQuantity"));
+        searchModel->setHeaderData(5, Qt::Horizontal, tr("Address"));
+        searchModel->setHeaderData(6, Qt::Horizontal, tr("Price"));
+        searchModel->setHeaderData(7, Qt::Horizontal, tr("Total Price"));
+        ui->searchTableView->resizeColumnsToContents();
     }
 }
 
@@ -246,41 +213,28 @@ void ProductManagerForm::on_searchPushButton_clicked()
 void ProductManagerForm::on_modifyPushButton_clicked()
 {
     /*트리위젯에서 클릭한 상품 정보를 item에 저장*/
-    QTreeWidgetItem* item = ui->treeWidget->currentItem();
+    QModelIndex idx = ui->tableView->currentIndex();
 
-    QString productname, Category;
-    int price;
-    int ID = ui->idLineEdit->text().toInt();
-    productname = ui->productnameLineEdit->text();
-    price = ui->priceLineEdit->text().toInt();
-    Category = ui->categoryLineEdit->text();
+    if(idx.isValid()) {
 
-    product_query->prepare("UPDATE Product SET p_name = ?, p_price = ?, p_category = ? WHERE p_id = ?;");
-    product_query->bindValue(0, productname);
-    product_query->bindValue(1, price);
-    product_query->bindValue(2, Category);
-    product_query->bindValue(3, ID);
-    product_query->exec();
-    productModel->select();
+        QString productname, Category;
+        int index = ui->tableView->currentIndex().row();
+        int price, quantity;
+        int ID = ui->idLineEdit->text().toInt();
+        productname = ui->productnameLineEdit->text();
+        price = ui->priceLineEdit->text().toInt();
+        Category = ui->categoryLineEdit->text();
+        quantity = ui->quantityLineEdit->text().toInt();
 
-    if(item != nullptr) {
-        /*트리위젯에서 선택한 상품 정보의 행 번호를 저장*/
-        int index = ui->treeWidget->currentIndex().row();
-
-        /*트리위젯에서 선택한 상품 정보의 ID 저장*/
-        int key = item->text(0).toInt();
-
-        /*ID에 해당하는 상품 정보 객체*/
-        ProductItem* c = productList[key];      
-
-        /*사용자가 입력한 값으로 데이터 변경*/
-        c->setProductName(productname);
-        c->setPrice(price);
-        c->setCategory(Category);
-
-        /*변경한 데이터의 객체(정보)를 productList에 저장*/
-        productList[key] = c;
-        ui->treeWidget->update();
+        product_query->prepare("UPDATE Product SET p_name = ?, p_price = ?, "
+                               "p_category = ?, p_quantity = ? WHERE p_id = ?;");
+        product_query->bindValue(0, productname);
+        product_query->bindValue(1, price);
+        product_query->bindValue(2, Category);
+        product_query->bindValue(3, quantity);
+        product_query->bindValue(4, ID);
+        product_query->exec();
+        productModel->select();
 
         /*shopmanagerform의 상품 정보 콤보박스에 변경된 값 전달하는 시그널*/
         emit productModified(productname, index);
@@ -291,37 +245,39 @@ void ProductManagerForm::on_modifyPushButton_clicked()
     ui->productnameLineEdit->clear();
     ui->priceLineEdit->clear();
     ui->categoryLineEdit->clear();
+    ui->quantityLineEdit->clear();
+    ui->tableView->resizeColumnsToContents();
 }
 
 /*Add 버튼 클릭시 상품 정보가 추가되는 것을 실행하는 함수*/
 void ProductManagerForm::on_addPushButton_clicked()
 {
     QString productname, Category;
-    int price;
+    int price, quantity;
 
     /*ID는 자동 생성*/
     int id = makeId();
+    ui->idLineEdit->setText(QString::number(id));
 
     /*상품명, 상품가격, 상품 카테고리는 사용자가 입력해줌*/
     productname = ui->productnameLineEdit->text();
     price = ui->priceLineEdit->text().toInt();
     Category = ui->categoryLineEdit->text();
+    quantity = ui->quantityLineEdit->text().toInt();
 
     /*입력란에 데이터를 입력하지 않고 Add버튼 클릭시 경고창 띄워주는 예외처리*/
-    if(productname == "" || ui->priceLineEdit->text() == "" || Category == "")
+    if(productname == "" || ui->priceLineEdit->text() == ""
+            || Category == "" || ui->quantityLineEdit->text() == "")
     {
         QMessageBox::warning(this, tr("Error"), tr("정보를 모두 입력해주세요"));
         return;
     }
 
-    /*상품명이 입력되면 해당 정보들을 객체로 productList에 추가*/
-    if(productname.length()) {
-        ProductItem* c = new ProductItem(id, productname, price, Category);
-        productList.insert(id, c);
-
-        /*트리위젯에 해당 정보 추가*/
-        ui->treeWidget->addTopLevelItem(c);
-        ui->treeWidget->update();
+    QSqlDatabase db = QSqlDatabase::database("productConnection");
+    if(db.isOpen() && productname.length()) {
+        product_query->exec(QString("INSERT INTO Product VALUES(%1, '%2', %3, '%4', %5)").arg(id)
+                            .arg(productname).arg(price).arg(Category).arg(quantity));
+        productModel->select();
 
         /*상품 정보가 추가되면 shopmanagerform에서 콤보박스에 해당 상품 정보 추가되는 시그널*/
         emit productAdded(id, productname);
@@ -332,59 +288,68 @@ void ProductManagerForm::on_addPushButton_clicked()
     ui->productnameLineEdit->clear();
     ui->priceLineEdit->clear();
     ui->categoryLineEdit->clear();
-
-    product_query->exec(QString("INSERT INTO Product VALUES(%1, '%2', %3, '%4')").arg(id).arg(productname).arg(price).arg(Category));
-    productModel->select();
-}
-
-/*상품 정보를 담고 있는 트리위젯에서 해당 상품을 클릭했을 경우
-입력란의 lineedit에 해당 상품에 대한 텍스트가 보여질 수 있도록 구현하였다.*/
-void ProductManagerForm::on_treeWidget_itemClicked(QTreeWidgetItem *item, int column)
-{
-    Q_UNUSED(column);
-    ui->idLineEdit->setText(item->text(0));
-    ui->productnameLineEdit->setText(item->text(1));
-    ui->priceLineEdit->setText(item->text(2));
-    ui->categoryLineEdit->setText(item->text(3));
-
-    /*Search toolBox가 선택되어 있을 때 트리위젯의 아이템 클릭시 Input toolBox로 변경된다.*/
-    ui->toolBox->setCurrentIndex(0);
+    ui->quantityLineEdit->clear();
 }
 
 /*Shopmanagerform에서 상품정보 콤보박스를 클릭 시 하단 트리위젯에
 클릭한 상품의 정보들의 보여질 수 있도록 하기위한 시그널 함수*/
 void ProductManagerForm::SearchProductInfo(QString productname)
 {
-    int i = 1;
-    auto flag = (i)? Qt::MatchCaseSensitive|Qt::MatchContains
-                   : Qt::MatchCaseSensitive;
-    {
-        /*shopmanagerform에서 받아온 상품명을 통해 해당 상품 정보를 검색*/
-        auto items = ui->treeWidget->findItems(productname, flag, i);
-        foreach(auto i, items) {
-            ProductItem* c = static_cast<ProductItem*>(i);
-            int id = c->ID();
-            QString name = c->getProductName();
-            QString category = c->getCategory();
-            int price = c->getPrice();
+    auto flag = Qt::MatchCaseSensitive|Qt::MatchContains;
+    /*shopmanagerform에서 받아온 상품명을 통해 해당 상품 정보를 검색*/
+    QModelIndexList indexes = productModel->match(productModel->index(0, 1), Qt::EditRole, productname, -1, Qt::MatchFlags(flag));
 
-            /*Shopmanagerform에서 받아온 상품명을 통해 상품 정보를 찾아 해당 객체를 넘겨줌*/
-            emit ProductInfoSended(c);
-        }
+    foreach(auto ix, indexes) {
+        QString productname = productModel->data(ix.siblingAtColumn(1)).toString();
+        QString price = productModel->data(ix.siblingAtColumn(2)).toString();
+        QString Category = productModel->data(ix.siblingAtColumn(3)).toString();
+        QStringList strings;
+        strings << productname << price << Category;
+
+        /*Shopmanagerform에서 받아온 상품명을 통해 상품 정보를 찾아 해당 정보를 넘겨줌*/
+        emit ProductInfoSended(strings);
     }
-
 }
 
+/*재고 수량과 주문 수량의 관계 : 주문 수량에 따라 재고 수량이 변경되도록 구현된 함수*/
+void ProductManagerForm::SendQuantity(int quantity, QString productname)
+{
+    auto flag = Qt::MatchCaseSensitive|Qt::MatchContains;
+    QModelIndexList indexes = productModel->match(productModel->index(0, 1), Qt::EditRole, productname, -1, Qt::MatchFlags(flag));
+
+    foreach(auto ix, indexes) {
+        int ID = productModel->data(ix.siblingAtColumn(0)).toInt();
+        int original_quantity = productModel->data(ix.siblingAtColumn(4)).toInt();
+
+        if(original_quantity - quantity < 0)
+        {
+            emit quantityInformed(0);
+            return;
+        }
+
+        product_query->prepare("UPDATE Product SET p_quantity = ? WHERE p_id = ?;");
+        product_query->bindValue(0, original_quantity - quantity);
+        product_query->bindValue(1, ID);
+        product_query->exec();
+        productModel->select();
+        emit quantityInformed(1);
+    }
+}
+
+/*상품 정보를 담고 있는 테이블 뷰에서 해당 상품을 클릭했을 경우
+입력란의 lineedit에 해당 상품에 대한 텍스트가 보여질 수 있도록 구현하였다.*/
 void ProductManagerForm::on_tableView_clicked(const QModelIndex &idx)
 {
     QString ID = idx.sibling(idx.row(), 0).data().toString();
     QString productname = idx.sibling(idx.row(), 1).data().toString();
     QString price = idx.sibling(idx.row(), 2).data().toString();
     QString Category = idx.sibling(idx.row(), 3).data().toString();
+    QString quantity = idx.sibling(idx.row(), 4).data().toString();
 
     ui->idLineEdit->setText(ID);
     ui->productnameLineEdit->setText(productname);
     ui->priceLineEdit->setText(price);
     ui->categoryLineEdit->setText(Category);
+    ui->quantityLineEdit->setText(quantity);
 }
 

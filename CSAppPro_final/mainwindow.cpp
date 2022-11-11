@@ -15,6 +15,14 @@ MainWindow::MainWindow(QWidget *parent)
     //메인 윈도우 창 사이즈 1400 X 800
     this->resize(1400, 800);
 
+    //위젯 아이콘 설정
+    ui->actionChat->setIcon(QIcon("chat.png"));
+    ui->actionQuit->setIcon(QIcon("quit.png"));
+    ui->actionClient->setIcon(QIcon("client.png"));
+    ui->actionProduct->setIcon(QIcon("product.png"));
+    ui->actionShoplist->setIcon(QIcon("shoplist.png"));
+    ui->actionServer->setIcon(QIcon("chat server.png"));
+
     //Shopmanagerform 객체 생성
     orderForm = new ShoplistManagerForm(this);
     connect(orderForm, SIGNAL(destroyed()), orderForm, SLOT(deleteLater()));
@@ -64,6 +72,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(productForm, SIGNAL(productremoved(int)),
             orderForm, SLOT(removeProduct(int))); //트리위젯에서 선택된 인덱스 값 전달
 
+    connect(orderForm, SIGNAL(QuantitySended(int, QString)),
+            productForm, SLOT(SendQuantity(int, QString)));
+
+
+    connect(productForm, SIGNAL(quantityInformed(bool)),
+            orderForm, SLOT(Informquantity(bool)));
 
 
     //ProductManagerForm의 윈도우 제목은 Product Info로 설정
@@ -77,8 +91,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     /*orderForm에서 고객 ID를 clientForm으로 전달한 후 그에 해당하는 고객 데이터 객체를
       다시 orderForm으로 보내어 필요한 고객 데이터를 사용*/
-    connect(clientForm, SIGNAL(CustomerInfoSended(ClientItem*)),
-            orderForm, SLOT(SendCustomerInfo(ClientItem*)));
+    connect(clientForm, SIGNAL(CustomerInfoSended(QStringList)),
+            orderForm, SLOT(SendCustomerInfo(QStringList)));
 
     /*Shopmanagerfoem에서 상품 정보 콤보박스에서 상품을 선택했을 때
     해당 상품 정보가 상품 정보 treeWidget에 보여지도록 하기 위한 연결 과정*/
@@ -87,8 +101,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     /*orderForm에서 상품명을 productForm으로 전달한 후 그에 해당하는 상품 데이터 객체를
       다시 orderForm으로 보내어 필요한 상품 데이터를 사용*/
-    connect(productForm, SIGNAL(ProductInfoSended(ProductItem*)),
-            orderForm, SLOT(SendProductInfo(ProductItem*)));
+    connect(productForm, SIGNAL(ProductInfoSended(QStringList)),
+            orderForm, SLOT(SendProductInfo(QStringList)));
 
     //ClientForm, ProductForm, OrderForm을 각각 mdiArea로 추가
     QMdiSubWindow *cw = ui->mdiArea->addSubWindow(clientForm);
@@ -116,8 +130,6 @@ MainWindow::MainWindow(QWidget *parent)
     clientForm->loadData();
     //ProductManagerForm 기존 데이터 불러오기
     productForm->loadData();
-
-
 }
 
 MainWindow::~MainWindow()
@@ -142,6 +154,30 @@ void MainWindow::on_actionClient_triggered()
     }
 }
 
+/*메인 윈도우에서 Product 버튼 클릭시 동작되는 함수*/
+void MainWindow::on_actionProduct_triggered()
+{
+    if(productForm != nullptr) {
+        productForm->setFocus();
+    }
+}
+
+/*메인 윈도우에서 shoplist 버튼 클릭시 동작되는 함수*/
+void MainWindow::on_actionShoplist_triggered()
+{
+    if(orderForm != nullptr) {
+        orderForm->setFocus();
+    }
+}
+
+void MainWindow::on_actionServer_triggered()
+{
+    if(chatServerForm != nullptr) {
+        chatServerForm->setFocus();
+    }
+}
+
+
 /*메인 윈도우에서 Chat 버튼 클릭시 동작되는 함수*/
 void MainWindow::on_actionChat_triggered()
 {
@@ -156,4 +192,5 @@ void MainWindow::on_actionChat_triggered()
     connect(chatServerForm, SIGNAL(SendLogInChecked(int)),
             chatClientForm, SLOT(LogInCheckSended(int)));
 }
+
 
