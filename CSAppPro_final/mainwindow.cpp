@@ -6,6 +6,7 @@
 #include "shoplistmanagerform.h"
 #include "chatserverform.h"
 #include "chatclientform.h"
+#include "clientlogthread.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -15,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
     //메인 윈도우 창 사이즈 1400 X 800
     this->resize(1400, 800);
 
-    //위젯 아이콘 설정
+    //툴바에서의 위젯 아이콘 설정
     ui->actionChat->setIcon(QIcon("chat.png"));
     ui->actionQuit->setIcon(QIcon("quit.png"));
     ui->actionClient->setIcon(QIcon("client.png"));
@@ -72,10 +73,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(productForm, SIGNAL(productremoved(int)),
             orderForm, SLOT(removeProduct(int))); //트리위젯에서 선택된 인덱스 값 전달
 
+    /*ShoplistmanagerForm에서 주문 수량이 입력되면 해당 수량을 ProductmanagerForm으로 전송*/
     connect(orderForm, SIGNAL(QuantitySended(int, QString)),
             productForm, SLOT(SendQuantity(int, QString)));
 
-
+    /*ProductmanagerForm에서 주문 수량과 재고 수량의 관계를 확인 후 bool값으로 전송*/
     connect(productForm, SIGNAL(quantityInformed(bool)),
             orderForm, SLOT(Informquantity(bool)));
 
@@ -114,6 +116,8 @@ MainWindow::MainWindow(QWidget *parent)
     chatServerForm = new ChatServerForm(this);
     chatServerForm->setWindowTitle(tr("Chat Server"));
 
+
+
     //mdiArea로 chatServerform을 추가
     ui->mdiArea->addSubWindow(chatServerForm);
 
@@ -127,6 +131,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(clientForm, SIGNAL(clientremoved(int)),
             chatServerForm, SLOT(removeChatClient(int)));
 
+    //ClientManagerForm 기존 데이터 불러오기
     clientForm->loadData();
     //ProductManagerForm 기존 데이터 불러오기
     productForm->loadData();
@@ -134,16 +139,12 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    /*생성했던 인자들 모두 삭제*/
     delete ui;
     delete chatServerForm;
     delete clientForm;
     delete productForm;
     delete orderForm;
-
-    QStringList list = QSqlDatabase::connectionNames();
-    for(int i = 0; i < list.count(); ++i) {
-        QSqlDatabase::removeDatabase(list[i]);
-    }
 }
 
 /*메인 윈도우에서 Client 버튼 클릭시 동작되는 함수*/
@@ -170,13 +171,13 @@ void MainWindow::on_actionShoplist_triggered()
     }
 }
 
+/*메인 윈도우에서 Server 버튼 클릭시 동작되는 함수*/
 void MainWindow::on_actionServer_triggered()
 {
     if(chatServerForm != nullptr) {
         chatServerForm->setFocus();
     }
 }
-
 
 /*메인 윈도우에서 Chat 버튼 클릭시 동작되는 함수*/
 void MainWindow::on_actionChat_triggered()
@@ -185,12 +186,20 @@ void MainWindow::on_actionChat_triggered()
     chatClientForm = new ChatClientForm();
     chatClientForm->show();
 
+    //ClientLogThread 객체 생성
+    clientLogThread = new ClientLogThread(this);
+
+    /**/
+    connect(chatClientForm, SIGNAL(ClientName(QString)),
+            clientLogThread, SLOT(NameClient(QString)));
+
     /*클라이언트에서 입력받은 고객명을 서버단으로 전송한 뒤 서버단에서 clientList내에 해당 고객이 있는지
       확인 후 유무에 따라 0, 1값을 다시 클라이언트로 보내주는 역할을 수행*/
     connect(chatClientForm, SIGNAL(LogInChecked(QString)),
             chatServerForm, SLOT(CheckLogIn(QString)));
     connect(chatServerForm, SIGNAL(SendLogInChecked(int)),
             chatClientForm, SLOT(LogInCheckSended(int)));
+
 }
 
 

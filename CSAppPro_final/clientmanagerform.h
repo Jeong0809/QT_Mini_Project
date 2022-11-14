@@ -27,10 +27,8 @@ public:
 
 private slots:
     /* QTreeWidget을 위한 슬롯 */
-    //void on_treeWidget_itemClicked(QTreeWidgetItem *item, int column);  /*트리위젯의 고객 정보 클릭시 동작하는 함수*/
     void showContextMenu(const QPoint &);                        /*마우스 오른족 버튼 클릭시 위치에 해당하는 정보를 제공하는 함수*/
-    //void showContextMenu_Table(const QPoint &);
-    void on_tableView_clicked(const QModelIndex &index);
+    void on_tableView_clicked(const QModelIndex &index);         /*테이블 뷰 클릭 시 입력란에 보여질 수 있도록 하는 함수*/
 
     void removeItem();                                           /*QAction을 위한 슬롯,  고객 삭제 함수*/
     void on_addPushButton_clicked();                             /*고객 추가 함수*/
@@ -48,9 +46,8 @@ private:
     int makeId();                                                /*고객 ID를 자동생성해주는 함수*/
     Ui::ClientManagerForm *ui;
     QMenu* menu;
-    QSqlTableModel *clientModel;
-    QSqlQuery* client_query;
-    QStandardItemModel* searchModel;
+    QSqlTableModel *clientModel;                                 /*고객 데이터를 저장하는 데이터 모델*/
+    QSqlQuery* client_query;                                     /*Client SQL 쿼리*/
+    QStandardItemModel* searchModel;                             /*검색 데이터를 임시로 저장하는 데이터 모델*/
 };
-
 #endif // CLIENTMANAGERFORM_H

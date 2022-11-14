@@ -65,6 +65,9 @@
      <height>70</height>
     </size>
    </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
    <attribute name="toolBarArea">
     <enum>LeftToolBarArea</enum>
    </attribute>
@@ -77,9 +80,9 @@
    <addaction name="separator"/>
    <addaction name="actionShoplist"/>
    <addaction name="separator"/>
-   <addaction name="actionChat"/>
-   <addaction name="separator"/>
    <addaction name="actionServer"/>
+   <addaction name="separator"/>
+   <addaction name="actionChat"/>
    <addaction name="separator"/>
    <addaction name="actionQuit"/>
   </widget>

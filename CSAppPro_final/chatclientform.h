@@ -11,6 +11,7 @@ class QTcpSocket;
 class QPushButton;
 class QFile;
 class QProgressDialog;
+class ClientLogThread;
 
 class ChatClientForm : public QWidget
 {
@@ -33,6 +34,7 @@ private slots:
 
 signals:
     void LogInChecked(QString);     // 로그인 시 해당 이름이 존재하는 고객인지 확인하기 위한 시그널
+    void ClientName(QString);       // 고객마다 고객명으로 채팅 기록이 저장되도록 고객명을 전송
 
 private:
     void closeEvent(QCloseEvent*) override;
@@ -55,5 +57,7 @@ private:
     bool isSent;                    // 파일 전송이 시작되었는지 확인을 위한 변수
     int flag = 0;                   // 강퇴 시 채팅방에 메시지가 보이지 않도록 하기위한 변수
     int LogInCheck;                 // 로그인 시 해당 이름이 존재하는 고객인지 확인하기 위한 변수
+    QTreeWidget *clientLog;         // 고객 별 채팅 로그 기록
+    ClientLogThread* clientLogThread;   // 채팅 로그 기록을 위한 변수
 };
 #endif // WIDGET_H

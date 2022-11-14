@@ -26,10 +26,10 @@ ShoplistManagerForm::ShoplistManagerForm(QWidget *parent) :
     QAction* removeAction = new QAction(tr("&Remove"));
     connect(removeAction, SIGNAL(triggered()), SLOT(removeItem()));
 
-    menu = new QMenu;
+
     /*메뉴 생성 후 Remove 추가*/
+    menu = new QMenu;
     menu->addAction(removeAction);
-    ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
 
     /*고객 정보 트리 위젯 컬럼명 공간 조절*/
     ui->CustomerInfotreeWidget->setColumnWidth(0, 70);
@@ -37,11 +37,12 @@ ShoplistManagerForm::ShoplistManagerForm(QWidget *parent) :
     /*상품 정보 트리 위젯 컬럼명 공간 조절*/
     ui->ProductInfotreeWidget->setColumnWidth(0, 130);
 
-    /*처음 실행 시 오늘 날짜가 선택되어 있도록 초깃값을 설정해주었다*/
+    /*처음 실행 시 오늘 날짜가 선택되어 있도록 초깃값을 설정*/
     date = new QDate();
     ui->dateEdit->setDate(date->currentDate());
 
     /*Shoplistmanager 트리 위젯에서 마우스 오른쪽 버튼 클릭시 해당 위치에서 Remove 창이 나오도록 연결*/
+    ui->tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->tableView, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(showContextMenu(QPoint)));
 
@@ -49,7 +50,7 @@ ShoplistManagerForm::ShoplistManagerForm(QWidget *parent) :
     connect(ui->searchLineEdit, SIGNAL(returnPressed()),
             this, SLOT(on_searchPushButton_clicked()));
 
-    /*검색 모델의 행렬을 0, 5로 초기화*/
+    /*검색 모델의 행렬을 0, 8로 초기화*/
     searchModel = new QStandardItemModel(0, 8);
 
     /*검색 창에서의 헤더 설정*/
@@ -66,14 +67,22 @@ ShoplistManagerForm::ShoplistManagerForm(QWidget *parent) :
     ui->searchTableView->setModel(searchModel);
 }
 
-/*shoplist.txt 파일에서 저장되어 있었던 주문내역 데이터를 불러오는 함수*/
+/*shoplist.db 파일에서 저장되어 있었던 주문내역 데이터를 불러오는 함수*/
 void ShoplistManagerForm::loadData()
 {
+    /*각각 고객, 상품, 주문 정보 별로 DB 연결을 하기 위해 DB Connection명을 별도로 지정*/
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "shoplistConnection");
+
+    /*Database명 설정*/
     db.setDatabaseName("shoplist.db");
 
+    /*DB가 오픈되면 Shoplist 테이블 생성*/
     if(db.open()){
+
+        /*shoplistConnection에 해당하는 쿼리 생성*/
         shop_query = new QSqlQuery(db);
+
+        /*주문번호, 주문날짜, 고객정보, 상품정보, 주문수량, 주소, 가격, 총 가격 인자를 통한 Shoplist 테이블 생성*/
         shop_query->exec("CREATE  TABLE Shoplist ( s_id NUMBER(20) PRIMARY KEY,"
                          "s_date VARCHAR2(100) NOT NULL,"
                          "s_customer_info VARCHAR2(100),"
@@ -83,10 +92,14 @@ void ShoplistManagerForm::loadData()
                          "s_price NUMBER(20),"
                          "s_totalprice NUMBER(20));");
 
+        /*shoplistConnection에 해당하는 테이블 모델 생성*/
         shopModel = new QSqlTableModel(this, db);
+
+        /*테이블 모델에 Shoplist 테이블 설정 및 업데이트*/
         shopModel->setTable("Shoplist");
         shopModel->select();
 
+        /*테이블 뷰에서 헤더 설정 및 뷰에 보여질 모델 설정*/
         shopModel->setHeaderData(0, Qt::Horizontal, tr("Order\nNumber"));
         shopModel->setHeaderData(1, Qt::Horizontal, tr("Date"));
         shopModel->setHeaderData(2, Qt::Horizontal, tr("Customer"));
@@ -95,7 +108,6 @@ void ShoplistManagerForm::loadData()
         shopModel->setHeaderData(5, Qt::Horizontal, tr("Address"));
         shopModel->setHeaderData(6, Qt::Horizontal, tr("Price"));
         shopModel->setHeaderData(7, Qt::Horizontal, tr("Total Price"));
-
         ui->tableView->setModel(shopModel);
     }
 
@@ -110,11 +122,14 @@ void ShoplistManagerForm::loadData()
     ui->tableView->setColumnWidth(7, 70);
 }
 
-/*shoplist.txt 파일에 주문내역 정보의 데이터를 ", "로 구분해서 저장*/
+/*shoplist.db 파일에 주문내역 정보의 데이터를 저장*/
 ShoplistManagerForm::~ShoplistManagerForm()
 {
     delete ui;
+    /*연결했던 DB를 연결해제*/
     QSqlDatabase db = QSqlDatabase::database("shoplistConnection");
+
+    /*DB가 오픈되면 소멸자에서 모델 삭제*/
     if(db.isOpen()) {
         shopModel->submitAll();
         delete shopModel;
@@ -124,15 +139,15 @@ ShoplistManagerForm::~ShoplistManagerForm()
     }
 }
 
-/*50000번부터 상품 ID가 자동으로 부여될 수 있도록 설정*/
+/*1번부터 주문번호가 자동으로 부여될 수 있도록 설정*/
 int ShoplistManagerForm::makeId( )
 {
-    /*shopModel의 사이즈가 0이면 데이터가 없는 것이므로 ID가 50000번부터 시작*/
+    /*shopModel의 사이즈가 0이면 데이터가 없는 것이므로 ID가 1번부터 시작*/
     if(shopModel->rowCount() == 0) {
         return 1;
     }
     else {
-        /*shopModel의 마지막 키의 ID에서 +1한 ID 번호 자동 부여*/
+        /*shopModel의 마지막 데이터의 0번째 인덱스(ID)에서 +1한 ID 번호 자동 부여*/
         auto id = shopModel->data(shopModel->index(shopModel->rowCount()-1, 0)).toInt();
         return ++id;
     }
@@ -141,19 +156,23 @@ int ShoplistManagerForm::makeId( )
 /*주문내역 데이터에서 선택한 주문내역 정보를 삭제하는 함수*/
 void ShoplistManagerForm::removeItem()
 {
-    /*테이블 뷰에서 선택된 주문내역 데이터 (주문번호)*/
+    /*테이블 뷰에서 선택된 주문내역 데이터(주문번호) 반환*/
     QModelIndex idx = ui->tableView->currentIndex();
+
+    /*테이블 뷰에서 클릭한 데이터의 주문 번호 값 반환*/
     int ID = idx.sibling(idx.row(), 0).data().toInt();
 
     if(idx.isValid()) {
         /*shop model에서 현재 클릭한 ID에 해당하는 주문내역 정보를 삭제*/
         shop_query->prepare("DELETE FROM Shoplist WHERE s_id = ?;");
         shop_query->addBindValue(ID);
+
+        /*해당 쿼리문 실행 및 업데이트*/
         shop_query->exec();
         shopModel->select();
     }
 
-    /*고객 데이터를 삭제하고 난 이후에 모든 입력란을 clear 해준다.*/
+    /*고객 데이터를 삭제하고 난 이후에 모든 입력란을 clear 해줌*/
     ui->idLineEdit->clear();
     ui->QuantityLineEdit->clear();
 }
@@ -166,9 +185,10 @@ void ShoplistManagerForm::showContextMenu(const QPoint &pos)
             menu->exec(globalPos);
 }
 
-/*Search 버튼을 눌렀을 때 검색 기능이 수행되는 함수*/
+/*Search 버튼을 눌렀을 때 데이터 검색 기능이 수행되는 함수*/
 void ShoplistManagerForm::on_searchPushButton_clicked()
 {
+    /*검색 모델 초기화*/
     searchModel->clear();
 
     /*현재 검색 콤보박스에서 선택된 인덱스, 어떤 인자로 검색할 것인지 나타냄*/
@@ -186,6 +206,7 @@ void ShoplistManagerForm::on_searchPushButton_clicked()
 
     /*주문 내역에 대한 정보를 shop model에서 불러옴*/
     foreach(auto ix, indexes) {
+        /*검색창에서 입력한 값으로 찾은 데이터를 통해 주문 정보 데이터들을 반환*/
         int id = shopModel->data(ix.siblingAtColumn(0)).toInt(); //c->id();
         QString Date = shopModel->data(ix.siblingAtColumn(1)).toString();
         QString CustomerInfo = shopModel->data(ix.siblingAtColumn(2)).toString();
@@ -194,11 +215,14 @@ void ShoplistManagerForm::on_searchPushButton_clicked()
         QString Address = shopModel->data(ix.siblingAtColumn(5)).toString();
         int Price = shopModel->data(ix.siblingAtColumn(6)).toInt();
         int TotalPrice = shopModel->data(ix.siblingAtColumn(7)).toInt();
+
+        /*찾은 주문 정보 데이터를 stringList에 저장*/
         QStringList strings;
         strings << QString::number(id) << Date << CustomerInfo << ProductInfo
                 << QString::number(Quantity) << Address << QString::number(Price)
                 << QString::number(TotalPrice);
 
+        /*stringList에 저장한 데이터를 QStandardItem에 추가*/
         QList<QStandardItem *> items;
         for (int i = 0; i < 8; ++i) {
             items.append(new QStandardItem(strings.at(i)));
@@ -214,6 +238,8 @@ void ShoplistManagerForm::on_searchPushButton_clicked()
         searchModel->setHeaderData(5, Qt::Horizontal, tr("Address"));
         searchModel->setHeaderData(6, Qt::Horizontal, tr("Price"));
         searchModel->setHeaderData(7, Qt::Horizontal, tr("Total Price"));
+
+        /*추가된 데이터에 맞게 자동적으로 컬럼 공간 조절*/
         ui->searchTableView->resizeColumnsToContents();
     }
 }
@@ -251,9 +277,13 @@ void ShoplistManagerForm::on_modifyPushButton_clicked()
         shop_query->bindValue(5, Price);
         shop_query->bindValue(6, TotalPrice);
         shop_query->bindValue(7, ID);
+
+        /*해당 쿼리문 실행 및 업데이트*/
         shop_query->exec();
         shopModel->select();
     }
+
+    /*주문 정보 데이터를 변경하고 난 이후에 모든 입력란을 clear*/
     ui->idLineEdit->clear();
     ui->QuantityLineEdit->clear();
 }
@@ -284,7 +314,6 @@ void ShoplistManagerForm::on_addPushButton_clicked()
         return;
     }
 
-
     /*입력란에 데이터를 입력하지 않고 Add버튼 클릭시 경고창 띄워주는 예외처리*/
     if(ui->CustomerInfotreeWidget->topLevelItemCount() == 0
             || ui->ProductInfotreeWidget->topLevelItemCount() == 0 || Quantity == 0)
@@ -300,7 +329,7 @@ void ShoplistManagerForm::on_addPushButton_clicked()
     /*총 가격은 불러온 가격 정보와 수량을 곱해서 구해줌*/
     TotalPrice = Price * Quantity;
 
-    /*날짜가 입력되면 해당 정보들을 shopList의 DB에 추가*/
+    /*DB가 오픈되어있고 날짜(NOT NULL)이 입력되면 Shoplist 테이블에 데이터 추가 및 업데이트*/
     QSqlDatabase db = QSqlDatabase::database("shoplistConnection");
     if(db.isOpen() && Date.length()) {
         shop_query->exec(QString("INSERT INTO Shoplist VALUES(%1, '%2', '%3', '%4', %5, '%6', %7, %8)")
@@ -310,8 +339,11 @@ void ShoplistManagerForm::on_addPushButton_clicked()
     }
 }
 
+/*ProductmanagerForm에서 재고 수량과 주문 수량과의 관계를 저장*/
 void ShoplistManagerForm::Informquantity(bool temp)
 {
+    /*재고 수량 > 주문 수량 -> 1
+      재고 수량 < 주문 수량 -> 0 */
     orderQuantity = temp;
 }
 
@@ -357,6 +389,7 @@ void ShoplistManagerForm::removeProduct(int index)
 입력란의 lineedit에 해당 주문내역에 대한 텍스트가 보여질 수 있도록 구현하였다.*/
 void ShoplistManagerForm::on_tableView_clicked(const QModelIndex &idx)
 {
+    /*클릭한 데이터의 ID, 이름, 휴대폰 번호, 주소를 반환*/
     QString ID = idx.sibling(idx.row(), 0).data().toString();
     QString Date = idx.sibling(idx.row(), 1).data().toString();
     QString CustomerInfo = idx.sibling(idx.row(), 2).data().toString();

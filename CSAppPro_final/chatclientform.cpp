@@ -1,4 +1,5 @@
 #include "chatclientform.h"
+#include "clientlogthread.h"
 
 #include <QTextEdit>
 #include <QLineEdit>
@@ -27,7 +28,6 @@ ChatClientForm::ChatClientForm(QWidget *parent) : QWidget(parent), isSent(false)
 
     /*이름을 적는 lineedit에 기존에 사용했던 이름이 입력되어 있도록 설정*/
     name->setText(settings.value("ChatClient/ID").toString());
-
 
     serverAddress = new QLineEdit(this);
     /*local host를 나타내는 IP 주소*/
@@ -71,6 +71,9 @@ ChatClientForm::ChatClientForm(QWidget *parent) : QWidget(parent), isSent(false)
     /*서버에서 오는 메시지 표시용*/
     message = new QTextEdit(this);
     message->setReadOnly(true);
+
+    /*고객 별 채팅 로그를 출력하기 위한 트리 위젯*/
+    clientLog = new QTreeWidget(this);
 
     /*서버로 보낼 메시지를 위한 위젯들*/
 
@@ -120,6 +123,7 @@ ChatClientForm::ChatClientForm(QWidget *parent) : QWidget(parent), isSent(false)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->addLayout(serverLayout);
     mainLayout->addWidget(message);
+    mainLayout->addWidget(clientLog);
     mainLayout->addLayout(inputLayout);
     mainLayout->addLayout(buttonLayout);
     setLayout(mainLayout);
@@ -202,6 +206,11 @@ ChatClientForm::ChatClientForm(QWidget *parent) : QWidget(parent), isSent(false)
 
     /*window 타이틀명을 chat client로 설정*/
     setWindowTitle(tr("Chat Client"));
+
+    clientLogThread = new ClientLogThread(this);
+    clientLogThread->start();
+
+    connect(connectButton, SIGNAL(clicked()), clientLogThread, SLOT(saveData_C()));
 }
 
 ChatClientForm::~ChatClientForm( )
@@ -322,7 +331,7 @@ void ChatClientForm::sendProtocol(Chat_Status type, char* data, int size)
 }
 
 /* 채팅창에서 메시지 보내기 */
-void ChatClientForm::sendData(  )
+void ChatClientForm::sendData()
 {
     /*입력란의 작성한 메시지를 str에 저장*/
     QString str = inputLine->text( );
@@ -335,7 +344,19 @@ void ChatClientForm::sendData(  )
         /* 화면에 표시 : 앞에 '나'라고 추가 */
         message->append("<font color=red>나</font> : " + str);
         sendProtocol(Chat_Talk, bytearray.data());
+        emit ClientName(name->text());
     }
+
+    /*해당 고객별로 채팅 메시지 별도로 저장*/
+    QTreeWidgetItem* item = new QTreeWidgetItem(clientLog);
+    item->setText(0, serverAddress->text());            /*IP 번호*/
+    item->setText(1, serverPort->text());               /*포트 번호*/
+    item->setText(2, name->text());                     /*고객명*/
+    item->setText(3, str);                              /*채팅 메시지*/
+    item->setText(4, QDateTime::currentDateTime().toString());  /*현재 날짜 및 시간*/
+    clientLog->setColumnCount(5);
+
+    clientLogThread->appendData(item);
 }
 
 /* 파일 전송시 여러번 나눠서 전송 시작 */

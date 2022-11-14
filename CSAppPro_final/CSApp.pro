@@ -11,26 +11,22 @@ CONFIG += c++17
 SOURCES += \
     chatclientform.cpp \
     chatserverform.cpp \
-    clientitem.cpp \
+    clientlogthread.cpp \
     clientmanagerform.cpp \
     logthread.cpp \
     main.cpp \
     mainwindow.cpp \
-    productitem.cpp \
     productmanagerform.cpp \
-    shopitem.cpp \
     shoplistmanagerform.cpp
 
 HEADERS += \
     chatclientform.h \
     chatserverform.h \
-    clientitem.h \
+    clientlogthread.h \
     clientmanagerform.h \
     logthread.h \
     mainwindow.h \
-    productitem.h \
     productmanagerform.h \
-    shopitem.h \
     shoplistmanagerform.h
 
 FORMS += \

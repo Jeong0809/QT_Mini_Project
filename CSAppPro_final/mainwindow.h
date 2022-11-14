@@ -12,6 +12,7 @@ class ProductManagerForm;
 class ShoplistManagerForm;
 class ChatClientForm;
 class ChatServerForm;
+class ClientLogThread;
 
 class MainWindow : public QMainWindow
 {
@@ -24,11 +25,9 @@ public:
 private slots:
     void on_actionClient_triggered();   /*Chat 버튼 클릭시 동작되는 함수*/
     void on_actionChat_triggered();     /*Client 버튼 클릭시 동작되는 함수*/
-    void on_actionProduct_triggered();
-    void on_actionShoplist_triggered();
-
-
-    void on_actionServer_triggered();
+    void on_actionProduct_triggered();  /*Product 버튼 클릭시 동작되는 함수*/
+    void on_actionShoplist_triggered(); /*Shoplist 버튼 클릭시 동작되는 함수*/
+    void on_actionServer_triggered();   /*Server 버튼 클릭시 동작되는 함수*/
 
 private:
     Ui::MainWindow *ui;                 /*MainWindow의 UI*/
@@ -37,5 +36,6 @@ private:
     ShoplistManagerForm* orderForm;     /*ShoplistManagerForm의 객체 생성*/
     ChatClientForm* chatClientForm;     /*ChatClientForm의 객체 생성*/
     ChatServerForm* chatServerForm;     /*ChatServerForm의 객체 생성*/
+    ClientLogThread* clientLogThread;   /*ClientLogThread의 객체 생성*/
 };
 #endif // MAINWINDOW_H

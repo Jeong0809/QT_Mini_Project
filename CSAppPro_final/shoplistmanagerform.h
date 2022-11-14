@@ -49,14 +49,13 @@ private slots:
     void on_searchPushButton_clicked();             /*검색 버튼 클릭시 입력한 정보로 검색한 결과를 나타내주는 함수*/
     void on_CustomerInfocomboBox_textActivated(const QString &arg1);    /*고객 정보 콤보박스의 데이터가 선택될 때 실행되는 함수*/
     void on_ProductInfocomboBox_textActivated(const QString &arg1);     /*상품 정보 콤보박스의 데이터가 선택될 때 실행되는 함수*/
-
-    void on_tableView_clicked(const QModelIndex &index);
-    void Informquantity(bool temp);
+    void on_tableView_clicked(const QModelIndex &index);                /*테이블 뷰 클릭 시 입력란에 보여질 수 있도록 하는 함수*/
+    void Informquantity(bool temp);                 /*ProductmanagerForm에서 재고 수량과 주문 수량과의 관계를 bool 형태로 반환*/
 
 signals:
     void CustomerInfoSearched(int);         /*고객 콤보박스에서 고객 ID를 뽑아 Clientmanagerform으로 전송하는 시그널*/
     void ProductInfoSearched(QString);      /*상품 콤보박스에서 상품명을 뽑아 Productmanagerform으로 전송하는 시그널*/
-    void QuantitySended(int, QString);          /*주문 정보에서 수량을 입력하면 상품란에서 해당 수량만큼 제거해주는 시그널*/
+    void QuantitySended(int, QString);      /*주문 정보에서 수량을 입력하면 상품란에서 해당 수량만큼 제거해주는 시그널*/
 
 private:
     int makeId();                                   /*주문번호(ID)를 자동생성해주는 함수*/
@@ -64,12 +63,10 @@ private:
     Ui::ShoplistManagerForm *ui;                    /*ShoplistManagerForm의 UI*/
     QMenu* menu;
     QDate* date;
-    QSqlTableModel *shopModel;
-    QSqlQuery* shop_query;
+    QSqlTableModel *shopModel;                      /*주문 정보 데이터를 저장하는 데이터 모델*/
+    QSqlQuery* shop_query;                          /*Shoplist SQL 쿼리*/
     bool orderQuantity;                             /*주문 수량이 재고 수량보다 적거나 같은지 확인하는 변수*/
-    QStandardItemModel* searchModel;
-    QStandardItemModel* clientModel;
-    QStandardItemModel* productModel;
+    QStandardItemModel* searchModel;                /*검색 데이터를 임시로 저장하는 데이터 모델*/
 };
 
 #endif // SHOPLISTMANAGERFORM_H
